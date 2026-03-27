@@ -1,0 +1,226 @@
+import { makeStyles, tokens, Text, Button } from "@fluentui/react-components";
+import { AddRegular, DeleteRegular, ArrowSortUpRegular, ArrowSortDownRegular, ArrowSortRegular } from "@fluentui/react-icons";
+import { useState, useMemo } from "react";
+import type { ReactElement } from "react";
+import { TerminalRow } from "./TerminalRow";
+import { AddTerminalDialog } from "./AddTerminalDialog";
+import { DeleteTerminalDialog } from "./DeleteTerminalDialog";
+import { mockTerminals } from "../../mock/terminals";
+import type { Terminal, MonitoringStatus } from "../../mock/terminals";
+
+type SortKey = "name" | "ip" | "online" | "monitoring";
+type SortDir = "asc" | "desc";
+
+const useStyles = makeStyles({
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    flexGrow: 1,
+    overflow: "hidden",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    padding: "10px 16px",
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground2,
+    flexShrink: 0,
+  },
+  toolbar: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "4px 12px",
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground2,
+    flexShrink: 0,
+  },
+  tableHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "4px 16px",
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground3,
+    flexShrink: 0,
+  },
+  sortCol: {
+    display: "flex",
+    alignItems: "center",
+    gap: "2px",
+    cursor: "pointer",
+    userSelect: "none",
+    flexShrink: 0,
+    "&:hover": { color: tokens.colorNeutralForeground1 },
+  },
+  list: {
+    flexGrow: 1,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+  },
+  empty: {
+    padding: "24px 16px",
+    color: tokens.colorNeutralForeground4,
+  },
+});
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }): ReactElement {
+  if (col !== sortKey) return <ArrowSortRegular style={{ fontSize: "12px", opacity: 0.4 }} />;
+  return sortDir === "asc"
+    ? <ArrowSortUpRegular style={{ fontSize: "12px" }} />
+    : <ArrowSortDownRegular style={{ fontSize: "12px" }} />;
+}
+
+export function TerminalManagementView(): ReactElement {
+  const styles = useStyles();
+  const [terminals, setTerminals] = useState<Terminal[]>(mockTerminals);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (key: SortKey): void => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedTerminals = useMemo(() => {
+    if (!sortKey) return terminals;
+    return [...terminals].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [terminals, sortKey, sortDir]);
+
+  const handleToggle = (id: string, next: MonitoringStatus): void => {
+    setTerminals((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, monitoring: next } : t))
+    );
+  };
+
+  const handleAdd = (entries: Array<{ name: string; ip: string }>): void => {
+    const newTerminals: Terminal[] = entries.map((e, i) => ({
+      id: `t${Date.now()}_${i}`,
+      name: e.name,
+      ip: e.ip,
+      monitoring: "off",
+      online: "offline",
+      dateFolders: [],
+    }));
+    setTerminals((prev) => [...prev, ...newTerminals]);
+    setAddDialogOpen(false);
+  };
+
+  const handleDeleteOne = (id: string): void => {
+    setTerminals((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleRename = (id: string, name: string): void => {
+    setTerminals((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, name } : t))
+    );
+  };
+
+  const handleDelete = (ids: string[]): void => {
+    setTerminals((prev) => prev.filter((t) => !ids.includes(t.id)));
+    setDeleteDialogOpen(false);
+  };
+
+  const onlineCount = terminals.filter((t) => t.online === "online").length;
+  const monitoringCount = terminals.filter((t) => t.monitoring === "on").length;
+
+  const colStyle = (w: string) => ({
+    width: w,
+    color: tokens.colorNeutralForeground3,
+  });
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <Text size={400} weight="semibold">端末管理</Text>
+        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+          オンライン {onlineCount} / {terminals.length}台　監視中 {monitoringCount}台
+        </Text>
+      </div>
+
+      <div className={styles.toolbar}>
+        <Button
+          appearance="primary"
+          size="small"
+          icon={<AddRegular />}
+          onClick={() => setAddDialogOpen(true)}
+        >
+          端末を追加
+        </Button>
+        <Button
+          appearance="outline"
+          size="small"
+          icon={<DeleteRegular />}
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          一括削除
+        </Button>
+      </div>
+
+      <AddTerminalDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        onAdd={handleAdd}
+        existingIps={terminals.map((t) => t.ip)}
+      />
+      <DeleteTerminalDialog
+        open={deleteDialogOpen}
+        terminals={terminals}
+        onClose={() => setDeleteDialogOpen(false)}
+        onDelete={handleDelete}
+      />
+
+      <div className={styles.tableHeader}>
+        <div style={{ width: "10px", flexShrink: 0 }} />
+        <div className={styles.sortCol} style={colStyle("140px")} onClick={() => handleSort("name")}>
+          <Text size={100} weight="semibold" style={{ color: "inherit" }}>端末名</Text>
+          <SortIcon col="name" sortKey={sortKey} sortDir={sortDir} />
+        </div>
+        <div className={styles.sortCol} style={colStyle("130px")} onClick={() => handleSort("ip")}>
+          <Text size={100} weight="semibold" style={{ color: "inherit" }}>IPアドレス</Text>
+          <SortIcon col="ip" sortKey={sortKey} sortDir={sortDir} />
+        </div>
+        <div className={styles.sortCol} style={colStyle("80px")} onClick={() => handleSort("online")}>
+          <Text size={100} weight="semibold" style={{ color: "inherit" }}>状態</Text>
+          <SortIcon col="online" sortKey={sortKey} sortDir={sortDir} />
+        </div>
+        <div className={styles.sortCol} style={colStyle("120px")} onClick={() => handleSort("monitoring")}>
+          <Text size={100} weight="semibold" style={{ color: "inherit" }}>自動監視</Text>
+          <SortIcon col="monitoring" sortKey={sortKey} sortDir={sortDir} />
+        </div>
+        <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
+      </div>
+
+      <div className={styles.list}>
+        {terminals.length === 0 ? (
+          <div className={styles.empty}>
+            <Text size={300} style={{ color: "inherit" }}>端末を追加してください</Text>
+          </div>
+        ) : (
+          sortedTerminals.map((t) => (
+            <TerminalRow
+              key={t.id}
+              terminal={t}
+              onToggleMonitoring={handleToggle}
+              onRename={handleRename}
+              onDelete={handleDeleteOne}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
