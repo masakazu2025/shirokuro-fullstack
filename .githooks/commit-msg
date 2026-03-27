@@ -1,0 +1,26 @@
+#!/bin/sh
+# コミットメッセージのフォーマットチェック
+# 許可形式: <type>: <description>
+# 例: feat: add terminal list, fix: correct ip validation
+
+MSG=$(cat "$1")
+PATTERN='^(feat|fix|docs|refactor|test|chore|hotfix)(\(.+\))?: .+'
+
+if ! echo "$MSG" | grep -Eq "$PATTERN"; then
+  echo ""
+  echo "ERROR: コミットメッセージのフォーマットが正しくありません。"
+  echo ""
+  echo "  正しい形式: <type>: <description>"
+  echo "  例: feat: add terminal list"
+  echo ""
+  echo "  使用できる type:"
+  echo "    feat     - 新機能"
+  echo "    fix      - バグ修正"
+  echo "    docs     - ドキュメントのみ"
+  echo "    refactor - リファクタリング"
+  echo "    test     - テストの追加・修正"
+  echo "    chore    - 雑務（依存更新・設定変更など）"
+  echo "    hotfix   - 本番緊急対応"
+  echo ""
+  exit 1
+fi

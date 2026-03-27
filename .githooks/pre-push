@@ -1,0 +1,13 @@
+#!/bin/sh
+# main への直接pushをブロック
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "main" ]; then
+  echo ""
+  echo "ERROR: main への直接pushは禁止されています。"
+  echo "  ブランチを切ってPRを作成してください。"
+  echo "  例: git checkout -b feature/terminal-list"
+  echo ""
+  exit 1
+fi
