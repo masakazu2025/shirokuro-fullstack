@@ -12,6 +12,18 @@ import type { Terminal, MonitoringStatus } from "../../api/terminalApi";
 
 type SortKey = "name" | "ip" | "online" | "monitoring";
 
+function useSessionFilter(key: string): [Set<string> | null, (v: Set<string> | null) => void] {
+  const [value, setValue] = useState<Set<string> | null>(() => {
+    const s = sessionStorage.getItem(key);
+    return s ? new Set(JSON.parse(s) as string[]) : null;
+  });
+  const set = (v: Set<string> | null): void => {
+    v === null ? sessionStorage.removeItem(key) : sessionStorage.setItem(key, JSON.stringify([...v]));
+    setValue(v);
+  };
+  return [value, set];
+}
+
 const useStyles = makeStyles({
   root: {
     display: "flex",
@@ -63,12 +75,17 @@ export function TerminalManagementView(): ReactElement {
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [nameFilter, setNameFilter] = useState<Set<string> | null>(null);
-  const [ipFilter, setIpFilter] = useState<Set<string> | null>(null);
-  const [onlineFilter, setOnlineFilter] = useState<Set<string> | null>(null);
-  const [monitoringFilter, setMonitoringFilter] = useState<Set<string> | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey | null>(() => (sessionStorage.getItem("tmv_sortKey") as SortKey) || null);
+  const [sortDir, setSortDir] = useState<SortDir>(() => (sessionStorage.getItem("tmv_sortDir") as SortDir) || "asc");
+  const [nameFilter, setNameFilter] = useSessionFilter("tmv_nameFilter");
+  const [ipFilter, setIpFilter] = useSessionFilter("tmv_ipFilter");
+  const [onlineFilter, setOnlineFilter] = useSessionFilter("tmv_onlineFilter");
+  const [monitoringFilter, setMonitoringFilter] = useSessionFilter("tmv_monitoringFilter");
+
+  useEffect(() => {
+    sortKey === null ? sessionStorage.removeItem("tmv_sortKey") : sessionStorage.setItem("tmv_sortKey", sortKey);
+    sessionStorage.setItem("tmv_sortDir", sortDir);
+  }, [sortKey, sortDir]);
 
   useEffect(() => {
     terminalApi.list().then(setTerminals);
