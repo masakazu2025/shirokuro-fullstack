@@ -209,3 +209,6 @@ __marimo__/
 # Frontend API schema (sparse-checkout)
 .frontend-api/
 docs/api
+
+# Runtime data
+data/

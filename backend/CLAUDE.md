@@ -11,8 +11,18 @@ Windows POSアプリの結合テストサポートツールのバックエンド
 
 - **Python 3.12+**
 - **Flask**（将来的な FastAPI 移行を考慮した設計とする）
+- **python-dotenv**（`.flaskenv` の読み込み用）
 - **pandas**
 - **Poetry**（パッケージ管理）
+
+### モジュール利用承認リスト
+
+以下は制約外だが使用を明示的に承認済み：
+
+| パッケージ | 用途 | 承認日 |
+|-----------|------|--------|
+| `flask` | REST API フレームワーク | プロジェクト開始時 |
+| `python-dotenv` | `.flaskenv` 読み込み（flask run 用） | 2026-03-28 |
 
 ## アーキテクチャ
 
@@ -20,7 +30,7 @@ Windows POSアプリの結合テストサポートツールのバックエンド
 
 ```
 api  →  usecase  →  domain
-infrastructure  →  domain
+infra  →  domain
 ```
 
 ### レイヤー責務
@@ -29,25 +39,24 @@ infrastructure  →  domain
 |----------|------|
 | `domain` | エンティティ・値オブジェクト・ドメインサービス（フレームワーク非依存） |
 | `usecase` | ユースケース・ポート定義（インターフェース） |
-| `infrastructure` | リポジトリ実装・外部サービス・DB・ファイルI/O |
+| `infra` | リポジトリ実装・外部サービス・DB・ファイルI/O |
 | `api` | ルーティング・リクエスト/レスポンス変換（Flask Blueprint） |
 
 ## ディレクトリ構成
 
 ```
-src/shirokuro/
+src/
 ├── domain/              # エンティティ・値オブジェクト・ドメインサービス
 │   ├── terminal/
-│   ├── transaction/
 │   └── ...
 ├── usecase/             # ユースケース・ポート定義
 │   ├── terminal/
-│   ├── transaction/
 │   └── ...
-├── infrastructure/      # リポジトリ実装・外部サービス
+├── infra/               # リポジトリ実装・外部サービス
 │   ├── repository/
 │   └── ...
 └── api/                 # ルーティング（Flask Blueprint）
+    ├── app.py
     ├── terminal/
     └── ...
 

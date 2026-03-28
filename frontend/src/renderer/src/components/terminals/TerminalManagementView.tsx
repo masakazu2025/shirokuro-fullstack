@@ -1,15 +1,28 @@
 import { makeStyles, tokens, Text, Button } from "@fluentui/react-components";
-import { AddRegular, DeleteRegular, ArrowSortUpRegular, ArrowSortDownRegular, ArrowSortRegular } from "@fluentui/react-icons";
-import { useState, useMemo } from "react";
+import { AddRegular, DeleteRegular, FilterDismissRegular } from "@fluentui/react-icons";
+import { useState, useMemo, useEffect } from "react";
 import type { ReactElement } from "react";
 import { TerminalRow } from "./TerminalRow";
 import { AddTerminalDialog } from "./AddTerminalDialog";
 import { DeleteTerminalDialog } from "./DeleteTerminalDialog";
-import { mockTerminals } from "../../mock/terminals";
-import type { Terminal, MonitoringStatus } from "../../mock/terminals";
+import { ColumnFilterPopover } from "./ColumnFilterPopover";
+import type { SortDir } from "./ColumnFilterPopover";
+import { terminalApi } from "../../api/terminalApi";
+import type { Terminal, MonitoringStatus } from "../../api/terminalApi";
 
 type SortKey = "name" | "ip" | "online" | "monitoring";
-type SortDir = "asc" | "desc";
+
+function useSessionFilter(key: string): [Set<string> | null, (v: Set<string> | null) => void] {
+  const [value, setValue] = useState<Set<string> | null>(() => {
+    const s = sessionStorage.getItem(key);
+    return s ? new Set(JSON.parse(s) as string[]) : null;
+  });
+  const set = (v: Set<string> | null): void => {
+    v === null ? sessionStorage.removeItem(key) : sessionStorage.setItem(key, JSON.stringify([...v]));
+    setValue(v);
+  };
+  return [value, set];
+}
 
 const useStyles = makeStyles({
   root: {
@@ -45,15 +58,6 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     flexShrink: 0,
   },
-  sortCol: {
-    display: "flex",
-    alignItems: "center",
-    gap: "2px",
-    cursor: "pointer",
-    userSelect: "none",
-    flexShrink: 0,
-    "&:hover": { color: tokens.colorNeutralForeground1 },
-  },
   list: {
     flexGrow: 1,
     overflowY: "auto",
@@ -66,81 +70,181 @@ const useStyles = makeStyles({
   },
 });
 
-function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }): ReactElement {
-  if (col !== sortKey) return <ArrowSortRegular style={{ fontSize: "12px", opacity: 0.4 }} />;
-  return sortDir === "asc"
-    ? <ArrowSortUpRegular style={{ fontSize: "12px" }} />
-    : <ArrowSortDownRegular style={{ fontSize: "12px" }} />;
-}
-
 export function TerminalManagementView(): ReactElement {
   const styles = useStyles();
-  const [terminals, setTerminals] = useState<Terminal[]>(mockTerminals);
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey | null>(() => (sessionStorage.getItem("tmv_sortKey") as SortKey) || null);
+  const [sortDir, setSortDir] = useState<SortDir>(() => (sessionStorage.getItem("tmv_sortDir") as SortDir) || "asc");
+  const [nameFilter, setNameFilter] = useSessionFilter("tmv_nameFilter");
+  const [ipFilter, setIpFilter] = useSessionFilter("tmv_ipFilter");
+  const [onlineFilter, setOnlineFilter] = useSessionFilter("tmv_onlineFilter");
+  const [monitoringFilter, setMonitoringFilter] = useSessionFilter("tmv_monitoringFilter");
 
-  const handleSort = (key: SortKey): void => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+  useEffect(() => {
+    sortKey === null ? sessionStorage.removeItem("tmv_sortKey") : sessionStorage.setItem("tmv_sortKey", sortKey);
+    sessionStorage.setItem("tmv_sortDir", sortDir);
+  }, [sortKey, sortDir]);
+
+  useEffect(() => {
+    terminalApi.list().then(setTerminals);
+  }, []);
+
+  // マウント時: online のみ更新（date はバック起動時プローブで確定済み）
+  useEffect(() => {
+    terminalApi.getStatus().then((statuses) => {
+      setTerminals((prev) =>
+        prev.map((t) => {
+          const s = statuses.find((s) => s.id === t.id);
+          return s ? { ...t, online: s.online } : t;
+        })
+      );
+    });
+  }, []);
+
+  // 30秒ポーリング: online のみ更新
+  useEffect(() => {
+    const id = setInterval(() => {
+      terminalApi.getStatus().then((statuses) => {
+        setTerminals((prev) =>
+          prev.map((t) => {
+            const s = statuses.find((s) => s.id === t.id);
+            return s ? { ...t, online: s.online } : t;
+          })
+        );
+      });
+    }, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const handleSort = (key: SortKey, dir: SortDir): void => {
+    if (sortKey === key && sortDir === dir) {
+      setSortKey(null);
     } else {
       setSortKey(key);
-      setSortDir("asc");
+      setSortDir(dir);
     }
   };
 
-  const sortedTerminals = useMemo(() => {
-    if (!sortKey) return terminals;
-    return [...terminals].sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+  const filteredTerminals = useMemo(() => {
+    let result = terminals;
+    if (nameFilter !== null) result = result.filter((t) => nameFilter.has(t.name));
+    if (ipFilter !== null) result = result.filter((t) => ipFilter.has(t.ip));
+    if (onlineFilter !== null) result = result.filter((t) => onlineFilter.has(t.online));
+    if (monitoringFilter !== null) result = result.filter((t) => monitoringFilter.has(t.monitoring));
+    if (!sortKey) return result;
+    return [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "ip") {
+        const toNum = (ip: string) => ip.split(".").map((n) => parseInt(n, 10));
+        const an = toNum(a.ip);
+        const bn = toNum(b.ip);
+        for (let i = 0; i < 4; i++) {
+          if (an[i] !== bn[i]) { cmp = an[i] - bn[i]; break; }
+        }
+      } else if (sortKey === "name") {
+        cmp = a.name.localeCompare(b.name, "ja", { numeric: true });
+      } else {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [terminals, sortKey, sortDir]);
+  }, [terminals, nameFilter, ipFilter, onlineFilter, monitoringFilter, sortKey, sortDir]);
 
-  const handleToggle = (id: string, next: MonitoringStatus): void => {
-    setTerminals((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, monitoring: next } : t))
+  const handleToggle = (id: string, next: MonitoringStatus, pendingDate?: string | null): void => {
+    const patch = next === "on" && pendingDate
+      ? { monitoring: next, monitoring_date: pendingDate }
+      : { monitoring: next };
+    terminalApi.patch(id, patch).then((updated) =>
+      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online } : t)))
     );
   };
 
   const handleAdd = (entries: Array<{ name: string; ip: string }>): void => {
-    const newTerminals: Terminal[] = entries.map((e, i) => ({
-      id: `t${Date.now()}_${i}`,
-      name: e.name,
-      ip: e.ip,
-      monitoring: "off",
-      online: "offline",
-      dateFolders: [],
-    }));
-    setTerminals((prev) => [...prev, ...newTerminals]);
-    setAddDialogOpen(false);
+    terminalApi.add(entries).then((created) => {
+      setTerminals((prev) => [...prev, ...created]);
+      setAddDialogOpen(false);
+      terminalApi.getStatus().then((statuses) => {
+        setTerminals((prev) =>
+          prev.map((t) => {
+            const s = statuses.find((s) => s.id === t.id);
+            return s ? { ...t, online: s.online } : t;
+          })
+        );
+      });
+    });
   };
 
   const handleDeleteOne = (id: string): void => {
-    setTerminals((prev) => prev.filter((t) => t.id !== id));
+    terminalApi.deleteOne(id).then(() =>
+      setTerminals((prev) => prev.filter((t) => t.id !== id))
+    );
   };
 
   const handleRename = (id: string, name: string): void => {
-    setTerminals((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, name } : t))
+    terminalApi.patch(id, { name }).then((updated) =>
+      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online } : t)))
     );
   };
 
   const handleDelete = (ids: string[]): void => {
-    setTerminals((prev) => prev.filter((t) => !ids.includes(t.id)));
-    setDeleteDialogOpen(false);
+    terminalApi.deleteMany(ids).then(() => {
+      setTerminals((prev) => prev.filter((t) => !ids.includes(t.id)));
+    });
   };
 
   const onlineCount = terminals.filter((t) => t.online === "online").length;
   const monitoringCount = terminals.filter((t) => t.monitoring === "on").length;
 
-  const colStyle = (w: string) => ({
-    width: w,
-    color: tokens.colorNeutralForeground3,
-  });
+  const applyFilters = (exclude: "name" | "ip" | "online" | "monitoring"): Terminal[] => {
+    let result = terminals;
+    if (exclude !== "name" && nameFilter !== null) result = result.filter((t) => nameFilter.has(t.name));
+    if (exclude !== "ip" && ipFilter !== null) result = result.filter((t) => ipFilter.has(t.ip));
+    if (exclude !== "online" && onlineFilter !== null) result = result.filter((t) => onlineFilter.has(t.online));
+    if (exclude !== "monitoring" && monitoringFilter !== null) result = result.filter((t) => monitoringFilter.has(t.monitoring));
+    return result;
+  };
+
+  const nameOptions = useMemo(
+    () => [...new Set(applyFilters("name").map((t) => t.name))]
+      .sort((a, b) => a.localeCompare(b, "ja", { numeric: true }))
+      .map((n) => ({ value: n, label: n })),
+    [terminals, ipFilter, onlineFilter, monitoringFilter]
+  );
+  const ipOptions = useMemo(
+    () => [...new Set(applyFilters("ip").map((t) => t.ip))]
+      .sort((a, b) => {
+        const toNum = (ip: string) => ip.split(".").map((n) => parseInt(n, 10));
+        const an = toNum(a); const bn = toNum(b);
+        for (let i = 0; i < 4; i++) if (an[i] !== bn[i]) return an[i] - bn[i];
+        return 0;
+      })
+      .map((ip) => ({ value: ip, label: ip })),
+    [terminals, nameFilter, onlineFilter, monitoringFilter]
+  );
+  const onlineOptions = useMemo(
+    () => {
+      const vals = new Set(applyFilters("online").map((t) => t.online));
+      return [
+        { value: "online", label: "オンライン" },
+        { value: "offline", label: "オフライン" },
+      ].filter((o) => vals.has(o.value as "online" | "offline"));
+    },
+    [terminals, nameFilter, ipFilter, monitoringFilter]
+  );
+  const monitoringOptions = useMemo(
+    () => {
+      const vals = new Set(applyFilters("monitoring").map((t) => t.monitoring));
+      return [
+        { value: "on", label: "監視中" },
+        { value: "off", label: "停止中" },
+      ].filter((o) => vals.has(o.value as "on" | "off"));
+    },
+    [terminals, nameFilter, ipFilter, onlineFilter]
+  );
 
   return (
     <div className={styles.root}>
@@ -154,19 +258,32 @@ export function TerminalManagementView(): ReactElement {
       <div className={styles.toolbar}>
         <Button
           appearance="primary"
-          size="small"
+          size="medium"
           icon={<AddRegular />}
           onClick={() => setAddDialogOpen(true)}
+          style={{ fontWeight: "normal" }}
         >
           端末を追加
         </Button>
         <Button
           appearance="outline"
-          size="small"
+          size="medium"
           icon={<DeleteRegular />}
           onClick={() => setDeleteDialogOpen(true)}
+          style={{ fontWeight: "normal" }}
+          disabled={terminals.length === 0}
         >
           一括削除
+        </Button>
+        <Button
+          appearance="subtle"
+          size="medium"
+          icon={<FilterDismissRegular />}
+          onClick={() => { setNameFilter(null); setIpFilter(null); setOnlineFilter(null); setMonitoringFilter(null); }}
+          style={{ fontWeight: "normal" }}
+          disabled={nameFilter === null && ipFilter === null && onlineFilter === null && monitoringFilter === null}
+        >
+          フィルタ解除
         </Button>
       </div>
 
@@ -185,23 +302,54 @@ export function TerminalManagementView(): ReactElement {
 
       <div className={styles.tableHeader}>
         <div style={{ width: "10px", flexShrink: 0 }} />
-        <div className={styles.sortCol} style={colStyle("140px")} onClick={() => handleSort("name")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>端末名</Text>
-          <SortIcon col="name" sortKey={sortKey} sortDir={sortDir} />
+        <div style={{ width: "140px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="端末名"
+            options={nameOptions}
+            filter={nameFilter}
+            onFilterChange={setNameFilter}
+            sortActive={sortKey === "name"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("name", dir)}
+          />
         </div>
-        <div className={styles.sortCol} style={colStyle("130px")} onClick={() => handleSort("ip")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>IPアドレス</Text>
-          <SortIcon col="ip" sortKey={sortKey} sortDir={sortDir} />
+        <div style={{ width: "130px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="IPアドレス"
+            options={ipOptions}
+            filter={ipFilter}
+            onFilterChange={setIpFilter}
+            sortActive={sortKey === "ip"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("ip", dir)}
+          />
         </div>
-        <div className={styles.sortCol} style={colStyle("80px")} onClick={() => handleSort("online")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>状態</Text>
-          <SortIcon col="online" sortKey={sortKey} sortDir={sortDir} />
+        <div style={{ width: "80px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="状態"
+            options={onlineOptions}
+            filter={onlineFilter}
+            onFilterChange={setOnlineFilter}
+            sortActive={sortKey === "online"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("online", dir)}
+          />
         </div>
-        <div className={styles.sortCol} style={colStyle("120px")} onClick={() => handleSort("monitoring")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>自動監視</Text>
-          <SortIcon col="monitoring" sortKey={sortKey} sortDir={sortDir} />
+        <Text size={200} weight="semibold" style={{ width: "140px", flexShrink: 0, color: tokens.colorNeutralForeground3 }}>
+          端末日付
+        </Text>
+        <div style={{ width: "120px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="自動監視"
+            options={monitoringOptions}
+            filter={monitoringFilter}
+            onFilterChange={setMonitoringFilter}
+            sortActive={sortKey === "monitoring"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("monitoring", dir)}
+          />
         </div>
-        <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
+        <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
       </div>
 
       <div className={styles.list}>
@@ -210,7 +358,7 @@ export function TerminalManagementView(): ReactElement {
             <Text size={300} style={{ color: "inherit" }}>端末を追加してください</Text>
           </div>
         ) : (
-          sortedTerminals.map((t) => (
+          filteredTerminals.map((t) => (
             <TerminalRow
               key={t.id}
               terminal={t}
