@@ -8,11 +8,12 @@ from infra.repository.terminal_json_repository import TerminalJsonRepository
 from infra.system.terminal_probe import WindowsTerminalProbe
 from infra.worker.monitoring_worker import MonitoringWorker
 from usecase.terminal.terminal_usecase import TerminalUsecase
+from usecase.terminal.probe_port import TerminalProbe
 
 logger = logging.getLogger(__name__)
 
 
-def create_app(data_dir: Path | None = None) -> Flask:
+def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None) -> Flask:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
@@ -24,7 +25,8 @@ def create_app(data_dir: Path | None = None) -> Flask:
 
     repo = TerminalJsonRepository(data_dir / "terminals.json")
     usecase = TerminalUsecase(repo)
-    probe = WindowsTerminalProbe()
+    if probe is None:
+        probe = WindowsTerminalProbe()
     app.config["terminal_usecase"] = usecase
     app.config["terminal_probe"] = probe
 
