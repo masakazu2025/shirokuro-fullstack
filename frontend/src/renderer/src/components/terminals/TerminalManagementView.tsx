@@ -127,9 +127,21 @@ export function TerminalManagementView(): ReactElement {
   const sortedTerminals = useMemo(() => {
     if (!sortKey) return terminals;
     return [...terminals].sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      let cmp = 0;
+      if (sortKey === "ip") {
+        const toNum = (ip: string) => ip.split(".").map((n) => parseInt(n, 10));
+        const an = toNum(a.ip);
+        const bn = toNum(b.ip);
+        for (let i = 0; i < 4; i++) {
+          if (an[i] !== bn[i]) { cmp = an[i] - bn[i]; break; }
+        }
+      } else if (sortKey === "name") {
+        cmp = a.name.localeCompare(b.name, "ja", { numeric: true });
+      } else {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [terminals, sortKey, sortDir]);
