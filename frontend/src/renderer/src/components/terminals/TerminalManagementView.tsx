@@ -85,6 +85,22 @@ export function TerminalManagementView(): ReactElement {
     terminalApi.list().then(setTerminals);
   }, []);
 
+  useEffect(() => {
+    const poll = (): void => {
+      terminalApi.getStatus().then((statuses) => {
+        setTerminals((prev) =>
+          prev.map((t) => {
+            const s = statuses.find((s) => s.id === t.id);
+            return s ? { ...t, online: s.online, date: s.date } : t;
+          })
+        );
+      });
+    };
+    poll();
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleSort = (key: SortKey): void => {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));

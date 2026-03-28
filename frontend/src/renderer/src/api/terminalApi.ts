@@ -13,6 +13,12 @@ export type Terminal = {
   date: string | null;
 };
 
+export type TerminalStatus = {
+  id: string;
+  online: OnlineStatus;
+  date: string;
+};
+
 // ---- real API ----
 
 const realApi = {
@@ -46,6 +52,10 @@ const realApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids }),
     }).then(() => undefined);
+  },
+
+  getStatus(): Promise<TerminalStatus[]> {
+    return fetch(`${BASE}/terminals/status`).then((r) => r.json());
   },
 };
 
@@ -88,6 +98,13 @@ const mockApi = {
   deleteMany(ids: string[]): Promise<void> {
     _mockStore = _mockStore.filter((t) => !ids.includes(t.id));
     return Promise.resolve();
+  },
+
+  getStatus(): Promise<TerminalStatus[]> {
+    const today = new Date().toISOString().slice(0, 10);
+    return Promise.resolve(
+      _mockStore.map((t) => ({ id: t.id, online: t.online, date: t.date ?? today }))
+    );
   },
 };
 
