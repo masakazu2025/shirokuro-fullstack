@@ -85,19 +85,33 @@ export function TerminalManagementView(): ReactElement {
     terminalApi.list().then(setTerminals);
   }, []);
 
+  // マウント時: online + monitoring=off の端末の date を更新
   useEffect(() => {
-    const poll = (): void => {
+    terminalApi.getStatus().then((statuses) => {
+      setTerminals((prev) =>
+        prev.map((t) => {
+          const s = statuses.find((s) => s.id === t.id);
+          if (!s) return t;
+          return t.monitoring === "off"
+            ? { ...t, online: s.online, date: s.date }
+            : { ...t, online: s.online };
+        })
+      );
+    });
+  }, []);
+
+  // 30秒ポーリング: online のみ更新
+  useEffect(() => {
+    const id = setInterval(() => {
       terminalApi.getStatus().then((statuses) => {
         setTerminals((prev) =>
           prev.map((t) => {
             const s = statuses.find((s) => s.id === t.id);
-            return s ? { ...t, online: s.online, date: s.date } : t;
+            return s ? { ...t, online: s.online } : t;
           })
         );
       });
-    };
-    poll();
-    const id = setInterval(poll, 30_000);
+    }, 30_000);
     return () => clearInterval(id);
   }, []);
 
@@ -141,6 +155,12 @@ export function TerminalManagementView(): ReactElement {
 
   const handleRename = (id: string, name: string): void => {
     terminalApi.patch(id, { name }).then((updated) =>
+      setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
+    );
+  };
+
+  const handleDateChange = (id: string, date: string): void => {
+    terminalApi.patch(id, { date }).then((updated) =>
       setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
     );
   };
@@ -204,23 +224,23 @@ export function TerminalManagementView(): ReactElement {
       <div className={styles.tableHeader}>
         <div style={{ width: "10px", flexShrink: 0 }} />
         <div className={styles.sortCol} style={colStyle("140px")} onClick={() => handleSort("name")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>端末名</Text>
+          <Text size={200} weight="semibold" style={{ color: "inherit" }}>端末名</Text>
           <SortIcon col="name" sortKey={sortKey} sortDir={sortDir} />
         </div>
         <div className={styles.sortCol} style={colStyle("130px")} onClick={() => handleSort("ip")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>IPアドレス</Text>
+          <Text size={200} weight="semibold" style={{ color: "inherit" }}>IPアドレス</Text>
           <SortIcon col="ip" sortKey={sortKey} sortDir={sortDir} />
         </div>
         <div className={styles.sortCol} style={colStyle("80px")} onClick={() => handleSort("online")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>状態</Text>
+          <Text size={200} weight="semibold" style={{ color: "inherit" }}>状態</Text>
           <SortIcon col="online" sortKey={sortKey} sortDir={sortDir} />
         </div>
+        <Text size={200} weight="semibold" style={{ ...colStyle("140px"), flexShrink: 0 }}>端末日付</Text>
         <div className={styles.sortCol} style={colStyle("120px")} onClick={() => handleSort("monitoring")}>
-          <Text size={100} weight="semibold" style={{ color: "inherit" }}>自動監視</Text>
+          <Text size={200} weight="semibold" style={{ color: "inherit" }}>自動監視</Text>
           <SortIcon col="monitoring" sortKey={sortKey} sortDir={sortDir} />
         </div>
-        <Text size={100} weight="semibold" style={{ ...colStyle("100px"), flexShrink: 0 }}>端末日付</Text>
-        <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
+        <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
       </div>
 
       <div className={styles.list}>
@@ -235,6 +255,7 @@ export function TerminalManagementView(): ReactElement {
               terminal={t}
               onToggleMonitoring={handleToggle}
               onRename={handleRename}
+              onDateChange={handleDateChange}
               onDelete={handleDeleteOne}
             />
           ))
