@@ -144,6 +144,17 @@ export function TerminalManagementView(): ReactElement {
     terminalApi.add(entries).then((created) => {
       setTerminals((prev) => [...prev, ...created]);
       setAddDialogOpen(false);
+      terminalApi.getStatus().then((statuses) => {
+        setTerminals((prev) =>
+          prev.map((t) => {
+            const s = statuses.find((s) => s.id === t.id);
+            if (!s) return t;
+            return t.monitoring === "off"
+              ? { ...t, online: s.online, date: s.date }
+              : { ...t, online: s.online };
+          })
+        );
+      });
     });
   };
 
@@ -168,7 +179,6 @@ export function TerminalManagementView(): ReactElement {
   const handleDelete = (ids: string[]): void => {
     terminalApi.deleteMany(ids).then(() => {
       setTerminals((prev) => prev.filter((t) => !ids.includes(t.id)));
-      setDeleteDialogOpen(false);
     });
   };
 

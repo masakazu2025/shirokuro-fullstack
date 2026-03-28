@@ -72,7 +72,7 @@ export function DeleteTerminalDialog({ open, terminals, onClose, onDelete }: Pro
 
   const handleDelete = (): void => {
     onDelete([...selectedIds]);
-    setSelectedIds(new Set());
+    handleClose();
   };
 
   const handleClose = (): void => {
