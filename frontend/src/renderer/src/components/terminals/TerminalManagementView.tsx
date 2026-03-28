@@ -1,15 +1,16 @@
 import { makeStyles, tokens, Text, Button } from "@fluentui/react-components";
-import { AddRegular, DeleteRegular, ArrowSortUpRegular, ArrowSortDownRegular, ArrowSortRegular } from "@fluentui/react-icons";
+import { AddRegular, DeleteRegular, FilterDismissRegular } from "@fluentui/react-icons";
 import { useState, useMemo, useEffect } from "react";
 import type { ReactElement } from "react";
 import { TerminalRow } from "./TerminalRow";
 import { AddTerminalDialog } from "./AddTerminalDialog";
 import { DeleteTerminalDialog } from "./DeleteTerminalDialog";
+import { ColumnFilterPopover } from "./ColumnFilterPopover";
+import type { SortDir } from "./ColumnFilterPopover";
 import { terminalApi } from "../../api/terminalApi";
 import type { Terminal, MonitoringStatus } from "../../api/terminalApi";
 
 type SortKey = "name" | "ip" | "online" | "monitoring";
-type SortDir = "asc" | "desc";
 
 const useStyles = makeStyles({
   root: {
@@ -45,15 +46,6 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     flexShrink: 0,
   },
-  sortCol: {
-    display: "flex",
-    alignItems: "center",
-    gap: "2px",
-    cursor: "pointer",
-    userSelect: "none",
-    flexShrink: 0,
-    "&:hover": { color: tokens.colorNeutralForeground1 },
-  },
   list: {
     flexGrow: 1,
     overflowY: "auto",
@@ -66,13 +58,6 @@ const useStyles = makeStyles({
   },
 });
 
-function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }): ReactElement {
-  if (col !== sortKey) return <ArrowSortRegular style={{ fontSize: "12px", opacity: 0.4 }} />;
-  return sortDir === "asc"
-    ? <ArrowSortUpRegular style={{ fontSize: "12px" }} />
-    : <ArrowSortDownRegular style={{ fontSize: "12px" }} />;
-}
-
 export function TerminalManagementView(): ReactElement {
   const styles = useStyles();
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -80,6 +65,10 @@ export function TerminalManagementView(): ReactElement {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [nameFilter, setNameFilter] = useState<Set<string> | null>(null);
+  const [ipFilter, setIpFilter] = useState<Set<string> | null>(null);
+  const [onlineFilter, setOnlineFilter] = useState<Set<string> | null>(null);
+  const [monitoringFilter, setMonitoringFilter] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     terminalApi.list().then(setTerminals);
@@ -115,18 +104,23 @@ export function TerminalManagementView(): ReactElement {
     return () => clearInterval(id);
   }, []);
 
-  const handleSort = (key: SortKey): void => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+  const handleSort = (key: SortKey, dir: SortDir): void => {
+    if (sortKey === key && sortDir === dir) {
+      setSortKey(null);
     } else {
       setSortKey(key);
-      setSortDir("asc");
+      setSortDir(dir);
     }
   };
 
-  const sortedTerminals = useMemo(() => {
-    if (!sortKey) return terminals;
-    return [...terminals].sort((a, b) => {
+  const filteredTerminals = useMemo(() => {
+    let result = terminals;
+    if (nameFilter !== null) result = result.filter((t) => nameFilter.has(t.name));
+    if (ipFilter !== null) result = result.filter((t) => ipFilter.has(t.ip));
+    if (onlineFilter !== null) result = result.filter((t) => onlineFilter.has(t.online));
+    if (monitoringFilter !== null) result = result.filter((t) => monitoringFilter.has(t.monitoring));
+    if (!sortKey) return result;
+    return [...result].sort((a, b) => {
       let cmp = 0;
       if (sortKey === "ip") {
         const toNum = (ip: string) => ip.split(".").map((n) => parseInt(n, 10));
@@ -144,11 +138,15 @@ export function TerminalManagementView(): ReactElement {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [terminals, sortKey, sortDir]);
+  }, [terminals, nameFilter, ipFilter, onlineFilter, monitoringFilter, sortKey, sortDir]);
 
   const handleToggle = (id: string, next: MonitoringStatus): void => {
-    terminalApi.patch(id, { monitoring: next }).then((updated) =>
-      setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
+    const current = terminals.find((t) => t.id === id);
+    const patch = next === "on" && current?.date
+      ? { monitoring: next, date: current.date }
+      : { monitoring: next };
+    terminalApi.patch(id, patch).then((updated) =>
+      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online, date: t.date } : t)))
     );
   };
 
@@ -178,7 +176,7 @@ export function TerminalManagementView(): ReactElement {
 
   const handleRename = (id: string, name: string): void => {
     terminalApi.patch(id, { name }).then((updated) =>
-      setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
+      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online, date: t.date } : t)))
     );
   };
 
@@ -197,10 +195,52 @@ export function TerminalManagementView(): ReactElement {
   const onlineCount = terminals.filter((t) => t.online === "online").length;
   const monitoringCount = terminals.filter((t) => t.monitoring === "on").length;
 
-  const colStyle = (w: string) => ({
-    width: w,
-    color: tokens.colorNeutralForeground3,
-  });
+  const applyFilters = (exclude: "name" | "ip" | "online" | "monitoring"): Terminal[] => {
+    let result = terminals;
+    if (exclude !== "name" && nameFilter !== null) result = result.filter((t) => nameFilter.has(t.name));
+    if (exclude !== "ip" && ipFilter !== null) result = result.filter((t) => ipFilter.has(t.ip));
+    if (exclude !== "online" && onlineFilter !== null) result = result.filter((t) => onlineFilter.has(t.online));
+    if (exclude !== "monitoring" && monitoringFilter !== null) result = result.filter((t) => monitoringFilter.has(t.monitoring));
+    return result;
+  };
+
+  const nameOptions = useMemo(
+    () => [...new Set(applyFilters("name").map((t) => t.name))]
+      .sort((a, b) => a.localeCompare(b, "ja", { numeric: true }))
+      .map((n) => ({ value: n, label: n })),
+    [terminals, ipFilter, onlineFilter, monitoringFilter]
+  );
+  const ipOptions = useMemo(
+    () => [...new Set(applyFilters("ip").map((t) => t.ip))]
+      .sort((a, b) => {
+        const toNum = (ip: string) => ip.split(".").map((n) => parseInt(n, 10));
+        const an = toNum(a); const bn = toNum(b);
+        for (let i = 0; i < 4; i++) if (an[i] !== bn[i]) return an[i] - bn[i];
+        return 0;
+      })
+      .map((ip) => ({ value: ip, label: ip })),
+    [terminals, nameFilter, onlineFilter, monitoringFilter]
+  );
+  const onlineOptions = useMemo(
+    () => {
+      const vals = new Set(applyFilters("online").map((t) => t.online));
+      return [
+        { value: "online", label: "オンライン" },
+        { value: "offline", label: "オフライン" },
+      ].filter((o) => vals.has(o.value as "online" | "offline"));
+    },
+    [terminals, nameFilter, ipFilter, monitoringFilter]
+  );
+  const monitoringOptions = useMemo(
+    () => {
+      const vals = new Set(applyFilters("monitoring").map((t) => t.monitoring));
+      return [
+        { value: "on", label: "監視中" },
+        { value: "off", label: "停止中" },
+      ].filter((o) => vals.has(o.value as "on" | "off"));
+    },
+    [terminals, nameFilter, ipFilter, onlineFilter]
+  );
 
   return (
     <div className={styles.root}>
@@ -231,6 +271,16 @@ export function TerminalManagementView(): ReactElement {
         >
           一括削除
         </Button>
+        <Button
+          appearance="subtle"
+          size="medium"
+          icon={<FilterDismissRegular />}
+          onClick={() => { setNameFilter(null); setIpFilter(null); setOnlineFilter(null); setMonitoringFilter(null); }}
+          style={{ fontWeight: "normal" }}
+          disabled={nameFilter === null && ipFilter === null && onlineFilter === null && monitoringFilter === null}
+        >
+          フィルタ解除
+        </Button>
       </div>
 
       <AddTerminalDialog
@@ -248,22 +298,52 @@ export function TerminalManagementView(): ReactElement {
 
       <div className={styles.tableHeader}>
         <div style={{ width: "10px", flexShrink: 0 }} />
-        <div className={styles.sortCol} style={colStyle("140px")} onClick={() => handleSort("name")}>
-          <Text size={200} weight="semibold" style={{ color: "inherit" }}>端末名</Text>
-          <SortIcon col="name" sortKey={sortKey} sortDir={sortDir} />
+        <div style={{ width: "140px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="端末名"
+            options={nameOptions}
+            filter={nameFilter}
+            onFilterChange={setNameFilter}
+            sortActive={sortKey === "name"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("name", dir)}
+          />
         </div>
-        <div className={styles.sortCol} style={colStyle("130px")} onClick={() => handleSort("ip")}>
-          <Text size={200} weight="semibold" style={{ color: "inherit" }}>IPアドレス</Text>
-          <SortIcon col="ip" sortKey={sortKey} sortDir={sortDir} />
+        <div style={{ width: "130px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="IPアドレス"
+            options={ipOptions}
+            filter={ipFilter}
+            onFilterChange={setIpFilter}
+            sortActive={sortKey === "ip"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("ip", dir)}
+          />
         </div>
-        <div className={styles.sortCol} style={colStyle("80px")} onClick={() => handleSort("online")}>
-          <Text size={200} weight="semibold" style={{ color: "inherit" }}>状態</Text>
-          <SortIcon col="online" sortKey={sortKey} sortDir={sortDir} />
+        <div style={{ width: "80px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="状態"
+            options={onlineOptions}
+            filter={onlineFilter}
+            onFilterChange={setOnlineFilter}
+            sortActive={sortKey === "online"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("online", dir)}
+          />
         </div>
-        <Text size={200} weight="semibold" style={{ ...colStyle("140px"), flexShrink: 0 }}>端末日付</Text>
-        <div className={styles.sortCol} style={colStyle("120px")} onClick={() => handleSort("monitoring")}>
-          <Text size={200} weight="semibold" style={{ color: "inherit" }}>自動監視</Text>
-          <SortIcon col="monitoring" sortKey={sortKey} sortDir={sortDir} />
+        <Text size={200} weight="semibold" style={{ width: "140px", flexShrink: 0, color: tokens.colorNeutralForeground3 }}>
+          端末日付
+        </Text>
+        <div style={{ width: "120px", flexShrink: 0 }}>
+          <ColumnFilterPopover
+            label="自動監視"
+            options={monitoringOptions}
+            filter={monitoringFilter}
+            onFilterChange={setMonitoringFilter}
+            sortActive={sortKey === "monitoring"}
+            sortDir={sortDir}
+            onSort={(dir) => handleSort("monitoring", dir)}
+          />
         </div>
         <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
       </div>
@@ -274,7 +354,7 @@ export function TerminalManagementView(): ReactElement {
             <Text size={300} style={{ color: "inherit" }}>端末を追加してください</Text>
           </div>
         ) : (
-          sortedTerminals.map((t) => (
+          filteredTerminals.map((t) => (
             <TerminalRow
               key={t.id}
               terminal={t}

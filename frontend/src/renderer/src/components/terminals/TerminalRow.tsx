@@ -109,12 +109,12 @@ export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDateChan
       <Text size={300} weight="semibold" className={styles.name}>
         {terminal.name}
       </Text>
-      <Text size={200} className={styles.ip}>
+      <Text size={300} className={styles.ip}>
         {terminal.ip}
       </Text>
       <div className={styles.colStatus}>
         <Badge
-          size="small"
+          size="medium"
           appearance="tint"
           color={terminal.online === "online" ? "success" : "subtle"}
         >
@@ -122,17 +122,25 @@ export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDateChan
         </Badge>
       </div>
       <div className={styles.dateCell}>
-        <DatePicker
-          value={toDate(terminal.date)}
-          onSelectDate={(d) => {
-            if (d) onDateChange(terminal.id, fromDate(d));
-          }}
-          formatDate={(d) => d ? `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}` : ""}
-          strings={JP_STRINGS}
-          placeholder="—"
-          style={{ width: "140px" }}
-          disabled={terminal.monitoring === "on"}
-        />
+        {terminal.monitoring === "on" ? (
+          <Text size={300} className={styles.dateText} style={{ cursor: "default", borderBottom: "none", paddingLeft: "1em" }}>
+            {terminal.date
+              ? (() => { const d = toDate(terminal.date)!; return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; })()
+              : "—"
+            }
+          </Text>
+        ) : (
+          <DatePicker
+            value={toDate(terminal.date)}
+            onSelectDate={(d) => {
+              if (d) onDateChange(terminal.id, fromDate(d));
+            }}
+            formatDate={(d) => d ? `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}` : ""}
+            strings={JP_STRINGS}
+            placeholder="—"
+            style={{ width: "140px" }}
+          />
+        )}
       </div>
 
       <div className={styles.toggle}>
