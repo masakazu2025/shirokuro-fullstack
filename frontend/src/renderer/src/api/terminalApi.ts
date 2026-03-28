@@ -34,7 +34,7 @@ const realApi = {
     }).then((r) => r.json());
   },
 
-  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "terminal_date" | "monitoring_date">>): Promise<Terminal> {
+  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "monitoring_date">>): Promise<Terminal> {
     return fetch(`${BASE}/terminals/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -86,7 +86,7 @@ const mockApi = {
     return Promise.resolve(created);
   },
 
-  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "terminal_date" | "monitoring_date">>): Promise<Terminal> {
+  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "monitoring_date">>): Promise<Terminal> {
     _mockStore = _mockStore.map((t) => (t.id === id ? { ...t, ...patch } : t));
     return Promise.resolve(_mockStore.find((t) => t.id === id)!);
   },

@@ -1,7 +1,6 @@
 from __future__ import annotations
 import logging
 import os
-import threading
 from pathlib import Path
 from flask import Flask, jsonify, request
 
@@ -34,12 +33,9 @@ def create_app(data_dir: Path | None = None) -> Flask:
     app.config["monitoring_worker"] = worker
     worker.start()
 
-    def _startup_probe() -> None:
-        logger.info("[startup] probing all terminals...")
-        usecase.probe_and_save(probe)
-        logger.info("[startup] probe complete")
-
-    threading.Thread(target=_startup_probe, daemon=True, name="startup-probe").start()
+    logger.info("[startup] probing all terminals...")
+    usecase.probe_and_save(probe)
+    logger.info("[startup] probe complete")
 
     @app.after_request
     def add_cors(response):

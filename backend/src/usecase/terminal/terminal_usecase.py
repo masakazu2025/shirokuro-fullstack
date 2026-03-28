@@ -58,8 +58,6 @@ class TerminalUsecase:
             terminal.name = patch["name"]
         if "monitoring" in patch:
             terminal.monitoring = patch["monitoring"]
-        if "terminal_date" in patch:
-            terminal.terminal_date = patch["terminal_date"]
         if "monitoring_date" in patch:
             terminal.monitoring_date = patch["monitoring_date"]
 

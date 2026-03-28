@@ -1,7 +1,7 @@
 import { makeStyles, tokens, Text, Switch, Badge, Button, Tooltip, Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Field, Input } from "@fluentui/react-components";
 import { DatePicker, type IDatePickerStrings } from "@fluentui/react-datepicker-compat";
 import { EditRegular, DeleteRegular } from "@fluentui/react-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactElement } from "react";
 import type { Terminal, MonitoringStatus } from "../../api/terminalApi";
 
@@ -87,17 +87,21 @@ function fromDate(d: Date): string {
 
 type Props = {
   terminal: Terminal;
-  onToggleMonitoring: (id: string, next: MonitoringStatus) => void;
+  onToggleMonitoring: (id: string, next: MonitoringStatus, pendingDate?: string | null) => void;
   onRename: (id: string, name: string) => void;
-  onDateChange: (id: string, date: string) => void;
   onDelete: (id: string) => void;
 };
 
-export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDateChange, onDelete }: Props): ReactElement {
+export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDelete }: Props): ReactElement {
   const styles = useStyles();
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pendingDate, setPendingDate] = useState<string | null>(terminal.terminal_date);
+
+  useEffect(() => {
+    setPendingDate(terminal.terminal_date);
+  }, [terminal.terminal_date]);
 
   return (
     <div className={styles.row}>
@@ -131,10 +135,10 @@ export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDateChan
           </Text>
         ) : (
           <DatePicker
-            key={terminal.terminal_date ?? "null"}
-            value={toDate(terminal.terminal_date)}
+            key={pendingDate ?? "null"}
+            value={toDate(pendingDate)}
             onSelectDate={(d) => {
-              if (d && fromDate(d) !== terminal.terminal_date) onDateChange(terminal.id, fromDate(d));
+              if (d) setPendingDate(fromDate(d));
             }}
             formatDate={(d) => d ? `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}` : ""}
             strings={JP_STRINGS}
@@ -149,7 +153,7 @@ export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDateChan
           label={terminal.monitoring === "on" ? "監視中" : "停止中"}
           checked={terminal.monitoring === "on"}
           onChange={(_, d) =>
-            onToggleMonitoring(terminal.id, d.checked ? "on" : "off")
+            onToggleMonitoring(terminal.id, d.checked ? "on" : "off", d.checked ? pendingDate : undefined)
           }
         />
       </div>

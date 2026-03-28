@@ -137,10 +137,9 @@ export function TerminalManagementView(): ReactElement {
     });
   }, [terminals, nameFilter, ipFilter, onlineFilter, monitoringFilter, sortKey, sortDir]);
 
-  const handleToggle = (id: string, next: MonitoringStatus): void => {
-    const current = terminals.find((t) => t.id === id);
-    const patch = next === "on" && current?.terminal_date
-      ? { monitoring: next, monitoring_date: current.terminal_date }
+  const handleToggle = (id: string, next: MonitoringStatus, pendingDate?: string | null): void => {
+    const patch = next === "on" && pendingDate
+      ? { monitoring: next, monitoring_date: pendingDate }
       : { monitoring: next };
     terminalApi.patch(id, patch).then((updated) =>
       setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online } : t)))
@@ -171,12 +170,6 @@ export function TerminalManagementView(): ReactElement {
   const handleRename = (id: string, name: string): void => {
     terminalApi.patch(id, { name }).then((updated) =>
       setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online } : t)))
-    );
-  };
-
-  const handleDateChange = (id: string, terminal_date: string): void => {
-    terminalApi.patch(id, { terminal_date }).then((updated) =>
-      setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
     );
   };
 
@@ -354,7 +347,6 @@ export function TerminalManagementView(): ReactElement {
               terminal={t}
               onToggleMonitoring={handleToggle}
               onRename={handleRename}
-              onDateChange={handleDateChange}
               onDelete={handleDeleteOne}
             />
           ))
