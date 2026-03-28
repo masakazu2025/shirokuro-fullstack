@@ -33,12 +33,12 @@
 
 ## バックエンド
 
-- [ ] バックエンド起動時に全端末をプローブして `online` + `date` を JSON に書き戻す
+- [x] バックエンド起動時に全端末をプローブして `online` + `date` を JSON に書き戻す
   `create_app()` 内でワンショットのプローブを実行し repo に保存する。
   これにより `online` の初期表示問題と `date` の起動時更新を両方解決する。
   （エンドポイントは不要。内部処理のみ）
 
-- [ ] `GET /terminals/status` から `date` を除去し `online` のみ返すように変更
+- [x] `GET /terminals/status` から `date` を除去し `online` のみ返すように変更
   フロントはポーリングで `online` のみ使う設計に変わったため。
   net time は起動時プローブと将来の定期更新（未実装）のみで使う。
 
