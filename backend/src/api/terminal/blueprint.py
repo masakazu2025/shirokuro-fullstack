@@ -2,12 +2,22 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request, current_app
 
 from usecase.terminal.terminal_usecase import TerminalUsecase
+from usecase.terminal.probe_port import TerminalProbe
 
 bp = Blueprint("terminal", __name__)
 
 
 def _usecase() -> TerminalUsecase:
     return current_app.config["terminal_usecase"]
+
+def _probe() -> TerminalProbe:
+    return current_app.config["terminal_probe"]
+
+
+@bp.get("/terminals/status")
+def get_status():
+    status = _usecase().get_status(_probe())
+    return jsonify(status)
 
 
 @bp.get("/terminals")

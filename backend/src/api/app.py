@@ -3,6 +3,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request
 
 from infra.repository.terminal_json_repository import TerminalJsonRepository
+from infra.system.terminal_probe import WindowsTerminalProbe
 from usecase.terminal.terminal_usecase import TerminalUsecase
 
 
@@ -14,6 +15,7 @@ def create_app(data_dir: Path | None = None) -> Flask:
 
     repo = TerminalJsonRepository(data_dir / "terminals.json")
     app.config["terminal_usecase"] = TerminalUsecase(repo)
+    app.config["terminal_probe"] = WindowsTerminalProbe()
 
     @app.after_request
     def add_cors(response):

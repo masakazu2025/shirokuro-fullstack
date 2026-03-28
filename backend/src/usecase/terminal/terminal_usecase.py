@@ -1,9 +1,11 @@
 from __future__ import annotations
 import uuid
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from domain.terminal.terminal import Terminal, MonitoringStatus
 from usecase.terminal.port import TerminalRepository
+from usecase.terminal.probe_port import TerminalProbe
 
 _IP_PATTERN = re.compile(
     r"^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$"
@@ -74,3 +76,20 @@ class TerminalUsecase:
         if ids_to_delete:
             self._repo.delete_many(ids_to_delete)
         return ids_to_delete
+
+    def get_status(self, probe: TerminalProbe) -> list[dict]:
+        terminals = self._repo.find_all()
+        results: dict[str, dict] = {}
+
+        def _probe(t: Terminal) -> dict:
+            online, probe_date = probe.probe(t.ip)
+            return {"id": t.id, "online": online, "date": probe_date}
+
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            futures = {executor.submit(_probe, t): t for t in terminals}
+            for future in as_completed(futures):
+                result = future.result()
+                results[result["id"]] = result
+
+        # 元の順序を保持
+        return [results[t.id] for t in terminals if t.id in results]
