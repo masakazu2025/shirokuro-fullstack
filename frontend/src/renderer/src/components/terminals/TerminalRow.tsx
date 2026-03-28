@@ -45,6 +45,12 @@ const useStyles = makeStyles({
     width: "120px",
     flexShrink: 0,
   },
+  date: {
+    width: "100px",
+    flexShrink: 0,
+    color: tokens.colorNeutralForeground3,
+    fontFamily: "'Cascadia Code', 'Consolas', monospace",
+  },
 });
 
 type Props = {
@@ -91,6 +97,9 @@ export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDelete }
           }
         />
       </div>
+      <Text size={200} className={styles.date}>
+        {terminal.date ?? "—"}
+      </Text>
       <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
         <Tooltip content="名称を変更" relationship="label">
           <Button

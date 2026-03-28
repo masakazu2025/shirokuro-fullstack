@@ -219,6 +219,7 @@ export function TerminalManagementView(): ReactElement {
           <Text size={100} weight="semibold" style={{ color: "inherit" }}>自動監視</Text>
           <SortIcon col="monitoring" sortKey={sortKey} sortDir={sortDir} />
         </div>
+        <Text size={100} weight="semibold" style={{ ...colStyle("100px"), flexShrink: 0 }}>端末日付</Text>
         <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>操作</Text>
       </div>
 
