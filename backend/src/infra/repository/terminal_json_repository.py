@@ -28,7 +28,8 @@ class TerminalJsonRepository(TerminalRepository):
             ip=d["ip"],
             monitoring=d.get("monitoring", "off"),
             online=d.get("online", "offline"),
-            date=d.get("date"),
+            terminal_date=d.get("terminal_date"),
+            monitoring_date=d.get("monitoring_date"),
         )
 
     def find_all(self) -> list[Terminal]:

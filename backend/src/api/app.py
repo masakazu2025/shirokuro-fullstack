@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import os
+import threading
 from pathlib import Path
 from flask import Flask, jsonify, request
 
@@ -8,6 +9,8 @@ from infra.repository.terminal_json_repository import TerminalJsonRepository
 from infra.system.terminal_probe import WindowsTerminalProbe
 from infra.worker.monitoring_worker import MonitoringWorker
 from usecase.terminal.terminal_usecase import TerminalUsecase
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(data_dir: Path | None = None) -> Flask:
@@ -21,13 +24,22 @@ def create_app(data_dir: Path | None = None) -> Flask:
         data_dir = Path(__file__).parent.parent.parent / "data"
 
     repo = TerminalJsonRepository(data_dir / "terminals.json")
-    app.config["terminal_usecase"] = TerminalUsecase(repo)
-    app.config["terminal_probe"] = WindowsTerminalProbe()
+    usecase = TerminalUsecase(repo)
+    probe = WindowsTerminalProbe()
+    app.config["terminal_usecase"] = usecase
+    app.config["terminal_probe"] = probe
 
     interval = int(os.environ.get("MONITORING_INTERVAL_SEC", "60"))
     worker = MonitoringWorker(repo, interval_sec=interval)
     app.config["monitoring_worker"] = worker
     worker.start()
+
+    def _startup_probe() -> None:
+        logger.info("[startup] probing all terminals...")
+        usecase.probe_and_save(probe)
+        logger.info("[startup] probe complete")
+
+    threading.Thread(target=_startup_probe, daemon=True, name="startup-probe").start()
 
     @app.after_request
     def add_cors(response):

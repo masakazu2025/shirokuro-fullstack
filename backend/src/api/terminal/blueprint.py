@@ -14,8 +14,8 @@ def _probe() -> TerminalProbe:
     return current_app.config["terminal_probe"]
 
 
-@bp.get("/terminals/status")
-def get_status():
+@bp.get("/terminals/online")
+def get_online():
     status = _usecase().get_status(_probe())
     return jsonify(status)
 

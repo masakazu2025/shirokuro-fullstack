@@ -21,7 +21,7 @@ status: active
 | PATCH | `/terminals/:id` | 端末情報更新（名前・監視状態） |
 | DELETE | `/terminals/:id` | 端末削除（1件） |
 | DELETE | `/terminals` | 端末削除（複数） |
-| GET | `/terminals/status` | オンライン状態一覧取得（ポーリング用） |
+| GET | `/terminals/online` | オンライン状態一覧取得（ポーリング用） |
 | GET | `/health` | ヘルスチェック |
 
 ---
@@ -41,7 +41,8 @@ status: active
     "ip": "192.168.1.101",
     "monitoring": "on",
     "online": "online",
-    "date": "2026-03-21"
+    "terminal_date": "2026-03-21",
+    "monitoring_date": "2026-03-21"
   },
   {
     "id": "t2",
@@ -49,7 +50,8 @@ status: active
     "ip": "192.168.1.102",
     "monitoring": "off",
     "online": "offline",
-    "date": null
+    "terminal_date": "2026-03-21",
+    "monitoring_date": null
   }
 ]
 ```
@@ -105,7 +107,11 @@ status: active
 ```
 
 ```json
-{ "date": "2026-03-21" }
+{ "terminal_date": "2026-03-21" }
+```
+
+```json
+{ "monitoring": "on", "monitoring_date": "2026-03-21" }
 ```
 
 ### レスポンス（成功）
@@ -158,22 +164,16 @@ status: active
 
 ---
 
-## GET /terminals/status
+## GET /terminals/online
 
 全端末のオンライン状態をpingで確認して返す。ポーリング用。
-あわせて `net time \\{IP}` で端末の日付を取得する。
-
-### 日付取得の仕様
-- `net time \\{IP}` で端末の現在日付を取得する
-- 取得失敗（オフライン等）の場合はPCの今日の日付を返す
-- **日付は必ず返る**（nullにならない）
 
 ### レスポンス
 
 ```json
 [
-  { "id": "t1", "online": "online",  "date": "2026-03-21" },
-  { "id": "t2", "online": "offline", "date": "2026-03-21" }
+  { "id": "t1", "online": "online"  },
+  { "id": "t2", "online": "offline" }
 ]
 ```
 

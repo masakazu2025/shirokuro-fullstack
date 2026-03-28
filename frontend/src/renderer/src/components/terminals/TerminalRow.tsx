@@ -124,16 +124,17 @@ export function TerminalRow({ terminal, onToggleMonitoring, onRename, onDateChan
       <div className={styles.dateCell}>
         {terminal.monitoring === "on" ? (
           <Text size={300} className={styles.dateText} style={{ cursor: "default", borderBottom: "none", paddingLeft: "1em" }}>
-            {terminal.date
-              ? (() => { const d = toDate(terminal.date)!; return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; })()
+            {terminal.monitoring_date
+              ? (() => { const d = toDate(terminal.monitoring_date)!; return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; })()
               : "—"
             }
           </Text>
         ) : (
           <DatePicker
-            value={toDate(terminal.date)}
+            key={terminal.terminal_date ?? "null"}
+            value={toDate(terminal.terminal_date)}
             onSelectDate={(d) => {
-              if (d) onDateChange(terminal.id, fromDate(d));
+              if (d && fromDate(d) !== terminal.terminal_date) onDateChange(terminal.id, fromDate(d));
             }}
             formatDate={(d) => d ? `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}` : ""}
             strings={JP_STRINGS}

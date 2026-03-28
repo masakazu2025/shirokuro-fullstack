@@ -74,16 +74,13 @@ export function TerminalManagementView(): ReactElement {
     terminalApi.list().then(setTerminals);
   }, []);
 
-  // マウント時: online + monitoring=off の端末の date を更新
+  // マウント時: online のみ更新（date はバック起動時プローブで確定済み）
   useEffect(() => {
     terminalApi.getStatus().then((statuses) => {
       setTerminals((prev) =>
         prev.map((t) => {
           const s = statuses.find((s) => s.id === t.id);
-          if (!s) return t;
-          return t.monitoring === "off"
-            ? { ...t, online: s.online, date: s.date }
-            : { ...t, online: s.online };
+          return s ? { ...t, online: s.online } : t;
         })
       );
     });
@@ -142,11 +139,11 @@ export function TerminalManagementView(): ReactElement {
 
   const handleToggle = (id: string, next: MonitoringStatus): void => {
     const current = terminals.find((t) => t.id === id);
-    const patch = next === "on" && current?.date
-      ? { monitoring: next, date: current.date }
+    const patch = next === "on" && current?.terminal_date
+      ? { monitoring: next, monitoring_date: current.terminal_date }
       : { monitoring: next };
     terminalApi.patch(id, patch).then((updated) =>
-      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online, date: t.date } : t)))
+      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online } : t)))
     );
   };
 
@@ -158,10 +155,7 @@ export function TerminalManagementView(): ReactElement {
         setTerminals((prev) =>
           prev.map((t) => {
             const s = statuses.find((s) => s.id === t.id);
-            if (!s) return t;
-            return t.monitoring === "off"
-              ? { ...t, online: s.online, date: s.date }
-              : { ...t, online: s.online };
+            return s ? { ...t, online: s.online } : t;
           })
         );
       });
@@ -176,12 +170,12 @@ export function TerminalManagementView(): ReactElement {
 
   const handleRename = (id: string, name: string): void => {
     terminalApi.patch(id, { name }).then((updated) =>
-      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online, date: t.date } : t)))
+      setTerminals((prev) => prev.map((t) => (t.id === id ? { ...updated, online: t.online } : t)))
     );
   };
 
-  const handleDateChange = (id: string, date: string): void => {
-    terminalApi.patch(id, { date }).then((updated) =>
+  const handleDateChange = (id: string, terminal_date: string): void => {
+    terminalApi.patch(id, { terminal_date }).then((updated) =>
       setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
     );
   };

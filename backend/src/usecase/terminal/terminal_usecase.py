@@ -58,8 +58,10 @@ class TerminalUsecase:
             terminal.name = patch["name"]
         if "monitoring" in patch:
             terminal.monitoring = patch["monitoring"]
-        if "date" in patch:
-            terminal.date = patch["date"]
+        if "terminal_date" in patch:
+            terminal.terminal_date = patch["terminal_date"]
+        if "monitoring_date" in patch:
+            terminal.monitoring_date = patch["monitoring_date"]
 
         self._repo.save(terminal)
         return terminal
@@ -78,12 +80,13 @@ class TerminalUsecase:
         return ids_to_delete
 
     def get_status(self, probe: TerminalProbe) -> list[dict]:
+        """全端末の online ステータスをプローブして返す。repo への書き戻しは行わない。"""
         terminals = self._repo.find_all()
         results: dict[str, dict] = {}
 
         def _probe(t: Terminal) -> dict:
-            online, probe_date = probe.probe(t.ip)
-            return {"id": t.id, "online": online, "date": probe_date}
+            online, _ = probe.probe(t.ip)
+            return {"id": t.id, "online": online}
 
         with ThreadPoolExecutor(max_workers=20) as executor:
             futures = {executor.submit(_probe, t): t for t in terminals}
@@ -93,3 +96,23 @@ class TerminalUsecase:
 
         # 元の順序を保持
         return [results[t.id] for t in terminals if t.id in results]
+
+    def probe_and_save(self, probe: TerminalProbe) -> None:
+        """全端末をプローブして online + date を repo に書き戻す。起動時に使用。"""
+        terminals = self._repo.find_all()
+        terminal_map = {t.id: t for t in terminals}
+
+        def _probe(t: Terminal) -> tuple[str, str, str]:
+            online, probe_date = probe.probe(t.ip)
+            return t.id, online, probe_date
+
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            results = list(executor.map(_probe, terminals))
+
+        for terminal_id, online, probe_date in results:
+            t = terminal_map[terminal_id]
+            t.online = online
+            t.terminal_date = probe_date
+            if t.monitoring == "on":
+                t.monitoring_date = probe_date
+            self._repo.save(t)

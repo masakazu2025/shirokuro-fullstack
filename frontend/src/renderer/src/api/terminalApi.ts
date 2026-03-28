@@ -10,13 +10,13 @@ export type Terminal = {
   ip: string;
   monitoring: MonitoringStatus;
   online: OnlineStatus;
-  date: string | null;
+  terminal_date: string | null;
+  monitoring_date: string | null;
 };
 
 export type TerminalStatus = {
   id: string;
   online: OnlineStatus;
-  date: string;
 };
 
 // ---- real API ----
@@ -34,7 +34,7 @@ const realApi = {
     }).then((r) => r.json());
   },
 
-  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "date">>): Promise<Terminal> {
+  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "terminal_date" | "monitoring_date">>): Promise<Terminal> {
     return fetch(`${BASE}/terminals/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -55,16 +55,16 @@ const realApi = {
   },
 
   getStatus(): Promise<TerminalStatus[]> {
-    return fetch(`${BASE}/terminals/status`).then((r) => r.json());
+    return fetch(`${BASE}/terminals/online`).then((r) => r.json());
   },
 };
 
 // ---- mock ----
 
 let _mockStore: Terminal[] = [
-  { id: "t1", name: "POS端末-01", ip: "192.168.1.101", monitoring: "on",  online: "online",  date: "2026-03-28" },
-  { id: "t2", name: "POS端末-02", ip: "192.168.1.102", monitoring: "on",  online: "online",  date: "2026-03-28" },
-  { id: "t3", name: "POS端末-03", ip: "192.168.1.103", monitoring: "off", online: "offline", date: null },
+  { id: "t1", name: "POS端末-01", ip: "192.168.1.101", monitoring: "on",  online: "online",  terminal_date: "2026-03-28", monitoring_date: "2026-03-28" },
+  { id: "t2", name: "POS端末-02", ip: "192.168.1.102", monitoring: "on",  online: "online",  terminal_date: "2026-03-28", monitoring_date: "2026-03-28" },
+  { id: "t3", name: "POS端末-03", ip: "192.168.1.103", monitoring: "off", online: "offline", terminal_date: null,         monitoring_date: null },
 ];
 
 const mockApi = {
@@ -79,13 +79,14 @@ const mockApi = {
       ip: e.ip,
       monitoring: "off",
       online: "offline",
-      date: null,
+      terminal_date: null,
+      monitoring_date: null,
     }));
     _mockStore = [..._mockStore, ...created];
     return Promise.resolve(created);
   },
 
-  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "date">>): Promise<Terminal> {
+  patch(id: string, patch: Partial<Pick<Terminal, "name" | "monitoring" | "terminal_date" | "monitoring_date">>): Promise<Terminal> {
     _mockStore = _mockStore.map((t) => (t.id === id ? { ...t, ...patch } : t));
     return Promise.resolve(_mockStore.find((t) => t.id === id)!);
   },
@@ -101,9 +102,8 @@ const mockApi = {
   },
 
   getStatus(): Promise<TerminalStatus[]> {
-    const today = new Date().toISOString().slice(0, 10);
     return Promise.resolve(
-      _mockStore.map((t) => ({ id: t.id, online: t.online, date: t.date ?? today }))
+      _mockStore.map((t) => ({ id: t.id, online: t.online }))
     );
   },
 };

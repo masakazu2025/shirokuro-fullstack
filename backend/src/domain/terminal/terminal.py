@@ -13,7 +13,8 @@ class Terminal:
     ip: str
     monitoring: MonitoringStatus = "off"
     online: OnlineStatus = "offline"
-    date: str | None = None
+    terminal_date: str | None = None
+    monitoring_date: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -22,5 +23,6 @@ class Terminal:
             "ip": self.ip,
             "monitoring": self.monitoring,
             "online": self.online,
-            "date": self.date,
+            "terminal_date": self.terminal_date,
+            "monitoring_date": self.monitoring_date,
         }
