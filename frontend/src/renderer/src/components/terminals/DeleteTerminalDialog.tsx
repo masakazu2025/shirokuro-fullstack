@@ -5,7 +5,7 @@ import {
 import { makeStyles, tokens } from "@fluentui/react-components";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import type { Terminal } from "../../mock/terminals";
+import type { Terminal } from "../../api/terminalApi";
 
 const useStyles = makeStyles({
   list: {

@@ -1,12 +1,12 @@
 import { makeStyles, tokens, Text, Button } from "@fluentui/react-components";
 import { AddRegular, DeleteRegular, ArrowSortUpRegular, ArrowSortDownRegular, ArrowSortRegular } from "@fluentui/react-icons";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { ReactElement } from "react";
 import { TerminalRow } from "./TerminalRow";
 import { AddTerminalDialog } from "./AddTerminalDialog";
 import { DeleteTerminalDialog } from "./DeleteTerminalDialog";
-import { mockTerminals } from "../../mock/terminals";
-import type { Terminal, MonitoringStatus } from "../../mock/terminals";
+import { terminalApi } from "../../api/terminalApi";
+import type { Terminal, MonitoringStatus } from "../../api/terminalApi";
 
 type SortKey = "name" | "ip" | "online" | "monitoring";
 type SortDir = "asc" | "desc";
@@ -75,11 +75,15 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | 
 
 export function TerminalManagementView(): ReactElement {
   const styles = useStyles();
-  const [terminals, setTerminals] = useState<Terminal[]>(mockTerminals);
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  useEffect(() => {
+    terminalApi.list().then(setTerminals);
+  }, []);
 
   const handleSort = (key: SortKey): void => {
     if (sortKey === key) {
@@ -101,37 +105,35 @@ export function TerminalManagementView(): ReactElement {
   }, [terminals, sortKey, sortDir]);
 
   const handleToggle = (id: string, next: MonitoringStatus): void => {
-    setTerminals((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, monitoring: next } : t))
+    terminalApi.patch(id, { monitoring: next }).then((updated) =>
+      setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
     );
   };
 
   const handleAdd = (entries: Array<{ name: string; ip: string }>): void => {
-    const newTerminals: Terminal[] = entries.map((e, i) => ({
-      id: `t${Date.now()}_${i}`,
-      name: e.name,
-      ip: e.ip,
-      monitoring: "off",
-      online: "offline",
-      dateFolders: [],
-    }));
-    setTerminals((prev) => [...prev, ...newTerminals]);
-    setAddDialogOpen(false);
+    terminalApi.add(entries).then((created) => {
+      setTerminals((prev) => [...prev, ...created]);
+      setAddDialogOpen(false);
+    });
   };
 
   const handleDeleteOne = (id: string): void => {
-    setTerminals((prev) => prev.filter((t) => t.id !== id));
+    terminalApi.deleteOne(id).then(() =>
+      setTerminals((prev) => prev.filter((t) => t.id !== id))
+    );
   };
 
   const handleRename = (id: string, name: string): void => {
-    setTerminals((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, name } : t))
+    terminalApi.patch(id, { name }).then((updated) =>
+      setTerminals((prev) => prev.map((t) => (t.id === id ? updated : t)))
     );
   };
 
   const handleDelete = (ids: string[]): void => {
-    setTerminals((prev) => prev.filter((t) => !ids.includes(t.id)));
-    setDeleteDialogOpen(false);
+    terminalApi.deleteMany(ids).then(() => {
+      setTerminals((prev) => prev.filter((t) => !ids.includes(t.id)));
+      setDeleteDialogOpen(false);
+    });
   };
 
   const onlineCount = terminals.filter((t) => t.online === "online").length;

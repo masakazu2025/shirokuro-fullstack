@@ -1,0 +1,3 @@
+FLASK_APP=api.app:create_app
+FLASK_DEBUG=1
+FLASK_RUN_PORT=4696

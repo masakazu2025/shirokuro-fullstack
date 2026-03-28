@@ -2,7 +2,7 @@ import { makeStyles, tokens, Text, Switch, Badge, Button, Tooltip, Dialog, Dialo
 import { EditRegular, DeleteRegular } from "@fluentui/react-icons";
 import { useState } from "react";
 import type { ReactElement } from "react";
-import type { Terminal, MonitoringStatus } from "../../mock/terminals";
+import type { Terminal, MonitoringStatus } from "../../api/terminalApi";
 
 const useStyles = makeStyles({
   row: {
