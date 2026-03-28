@@ -3,7 +3,7 @@
 ## プロジェクト概要
 
 Windows POSアプリの結合テストサポートツールのバックエンド。
-フロントエンド（shirokuro-frontend）から呼び出されるREST APIを提供する。
+フロントエンド（`../frontend/`）から呼び出されるREST APIを提供する。
 
 詳細は [docs/overview.md](docs/overview.md) を参照。
 
@@ -75,7 +75,7 @@ poetry run flask run     # 開発サーバー起動（localhost:4696）
 ## APIについて
 
 - Base URL: `http://localhost:4696/api`
-- スキーマは `docs/api/`（フロントリポジトリが正）を参照して実装する
+- スキーマは `../frontend/docs/api/` が正。バックエンドはこれを参照して実装する
 - フロントエンドが API を規定する（フロント駆動）
 
 ---
