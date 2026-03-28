@@ -22,9 +22,10 @@ class WindowsTerminalProbe(TerminalProbe):
     def _ping(self, ip: str) -> bool:
         try:
             result = subprocess.run(
-                ["ping", "-n", "1", "-w", "500", ip],
-                capture_output=True,
-                timeout=3,
+                ["ping", "-n", "1", "-w", "200", ip],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=1,
             )
             return result.returncode == 0
         except Exception:
@@ -34,8 +35,9 @@ class WindowsTerminalProbe(TerminalProbe):
         try:
             result = subprocess.run(
                 ["net", "time", f"\\\\{ip}"],
-                capture_output=True,
-                timeout=5,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                timeout=2,
             )
             output = result.stdout.decode("cp932", errors="ignore")
             m = _DATE_PATTERN.search(output)

@@ -202,17 +202,20 @@ export function TerminalManagementView(): ReactElement {
       <div className={styles.toolbar}>
         <Button
           appearance="primary"
-          size="small"
+          size="medium"
           icon={<AddRegular />}
           onClick={() => setAddDialogOpen(true)}
+          style={{ fontWeight: "normal" }}
         >
           端末を追加
         </Button>
         <Button
           appearance="outline"
-          size="small"
+          size="medium"
           icon={<DeleteRegular />}
           onClick={() => setDeleteDialogOpen(true)}
+          style={{ fontWeight: "normal" }}
+          disabled={terminals.length === 0}
         >
           一括削除
         </Button>
