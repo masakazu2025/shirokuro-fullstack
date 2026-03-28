@@ -12,7 +12,7 @@ Windows POSアプリの結合テストサポートツール。
 - **Electron** + **React** + **TypeScript**
 - **FluentUI v9** (`@fluentui/react-components`)
 - **electron-vite**（ビルドツール）
-- バックエンド（別リポジトリ）: Python / Flask / pandas
+- バックエンド（`../backend/`）: Python / Flask / pandas
 
 ## ディレクトリ構成
 
@@ -35,12 +35,12 @@ src/
 
 docs/
 ├── overview.md          # プロジェクト概要
-├── repository.md        # リポジトリ・開発フロー
-├── testing.md           # テスト方針
 ├── structure.md         # ドキュメント構成
-├── claude.md            # このファイルの設計方針
 ├── api/                 # APIスキーマ定義（フロントが正）
 ├── requirements/        # 機能別仕様・振舞
+├── behaviors/           # 振舞定義（FB-xxx）
+├── ideas/               # ブレスト・議論ログ
+├── rules/               # 開発ルール
 └── decisions/           # ADR（意思決定の記録）
 
 tests/                   # テストコード（未作成）
@@ -59,7 +59,7 @@ Electronラップは最終フェーズで対応。
 ## APIについて
 
 - Base URL: `http://localhost:4696/api`
-- バックエンド（`shirokuro-backend`）との接続は現在未実装（モックデータ使用中）
+- バックエンド（`../backend/`）との接続は現在未実装（モックデータ使用中）
 - スキーマは `docs/api/` が正。バックエンドはこれを参照して実装する
 
 ---
