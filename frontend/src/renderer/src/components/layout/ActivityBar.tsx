@@ -1,12 +1,14 @@
 import { makeStyles, tokens, Tooltip } from "@fluentui/react-components";
 import {
   DesktopRegular,
+  TableRegular,
   SettingsRegular,
 } from "@fluentui/react-icons";
 import type { ReactElement } from "react";
 
 export type ActivityKey =
   | "terminals"
+  | "browser"
   | "settings";
 
 type ActivityItem = {
@@ -17,6 +19,7 @@ type ActivityItem = {
 
 const ACTIVITIES: ActivityItem[] = [
   { key: "terminals", icon: <DesktopRegular />, label: "端末管理" },
+  { key: "browser",   icon: <TableRegular />,   label: "取引閲覧" },
   { key: "settings",  icon: <SettingsRegular />, label: "設定" },
 ];
 

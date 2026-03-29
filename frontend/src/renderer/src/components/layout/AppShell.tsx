@@ -6,6 +6,7 @@ import type { ActivityKey } from "./ActivityBar";
 import { MainPane } from "./MainPane";
 import { PlaceholderPane } from "./PlaceholderPane";
 import { TerminalManagementView } from "../terminals/TerminalManagementView";
+import { TransactionBrowserView } from "../browser/TransactionBrowserView";
 
 const useStyles = makeStyles({
   root: {
@@ -25,6 +26,8 @@ export function AppShell(): ReactElement {
       <ActivityBar active={activity} onChange={setActivity} />
       {activity === "terminals" ? (
         <TerminalManagementView />
+      ) : activity === "browser" ? (
+        <TransactionBrowserView />
       ) : (
         <MainPane>
           <PlaceholderPane label={activity} />
