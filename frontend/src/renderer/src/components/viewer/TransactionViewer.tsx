@@ -1,7 +1,7 @@
 import { makeStyles, tokens, Text, TabList, Tab } from "@fluentui/react-components";
 import { useState, useEffect } from "react";
 import type { ReactElement } from "react";
-import type { TransactionFile, FileSection } from "../../mock/terminals";
+import type { TransactionFileContent, FileSection } from "../../api/transactionApi";
 import { TextViewer } from "./TextViewer";
 import { CsvViewer } from "./CsvViewer";
 import { JsonViewer } from "./JsonViewer";
@@ -49,7 +49,7 @@ function SectionContent({ section }: { section: FileSection }): ReactElement {
 }
 
 type Props = {
-  file: TransactionFile | null;
+  file: TransactionFileContent | null;
   noFiles?: boolean;
 };
 
