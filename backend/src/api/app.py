@@ -59,7 +59,4 @@ def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None,
     from api.terminal.blueprint import bp as terminal_bp
     app.register_blueprint(terminal_bp, url_prefix="/api")
 
-    from api.transaction.blueprint import bp as transaction_bp
-    app.register_blueprint(transaction_bp, url_prefix="/api")
-
     return app
