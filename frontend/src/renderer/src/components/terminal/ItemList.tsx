@@ -3,10 +3,9 @@ import {
   DocumentRegular,
   TableSimpleRegular,
   BracesRegular,
-  ImageRegular,
 } from "@fluentui/react-icons";
 import type { ReactElement } from "react";
-import type { TransactionItem, ItemType } from "../../mock/terminals";
+import type { TransactionFile, SectionType } from "../../mock/terminals";
 
 const useStyles = makeStyles({
   root: {
@@ -61,21 +60,23 @@ const useStyles = makeStyles({
   },
 });
 
-const TYPE_ICONS: Record<ItemType, ReactElement> = {
+const TYPE_ICONS: Record<SectionType, ReactElement> = {
   text: <DocumentRegular />,
   csv: <TableSimpleRegular />,
   json: <BracesRegular />,
-  image: <ImageRegular />,
 };
 
 type Props = {
-  items: TransactionItem[];
+  files: TransactionFile[];
   selectedId: string | null;
-  onSelect: (item: TransactionItem) => void;
+  onSelect: (file: TransactionFile) => void;
+  transactionSelected: boolean;
 };
 
-export function ItemList({ items, selectedId, onSelect }: Props): ReactElement {
+export function ItemList({ files, selectedId, onSelect, transactionSelected }: Props): ReactElement {
   const styles = useStyles();
+
+  const emptyMessage = transactionSelected ? "項目が存在しません" : "取引を選択してください";
 
   return (
     <div className={styles.root}>
@@ -85,23 +86,26 @@ export function ItemList({ items, selectedId, onSelect }: Props): ReactElement {
         </Text>
       </div>
       <div className={styles.list}>
-        {items.length === 0 && (
+        {files.length === 0 && (
           <div className={styles.empty}>
-            <Text size={200}>取引を選択してください</Text>
+            <Text size={200}>{emptyMessage}</Text>
           </div>
         )}
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={`${styles.item} ${selectedId === item.id ? styles.itemSelected : ""}`}
-            onClick={() => onSelect(item)}
-          >
-            <span className={styles.icon}>{TYPE_ICONS[item.type]}</span>
-            <Text size={200} className={styles.name} title={item.name}>
-              {item.name}
-            </Text>
-          </div>
-        ))}
+        {files.map((file) => {
+          const firstType = file.data[0]?.type ?? "text";
+          return (
+            <div
+              key={file.id}
+              className={`${styles.item} ${selectedId === file.id ? styles.itemSelected : ""}`}
+              onClick={() => onSelect(file)}
+            >
+              <span className={styles.icon}>{TYPE_ICONS[firstType]}</span>
+              <Text size={200} className={styles.name} title={file.display_name}>
+                {file.display_name}
+              </Text>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

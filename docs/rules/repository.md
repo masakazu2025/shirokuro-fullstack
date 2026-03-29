@@ -6,46 +6,19 @@ status: active
 
 ## リポジトリ構成
 
-フロントエンドとバックエンドは**別リポジトリ**で管理する。
+フロントエンドとバックエンドは**モノレポ**（`shirokuro-fullstack`）で管理する。
 
-| リポジトリ | 内容 |
-|-----------|------|
-| `shirokuro-frontend` | Reactフロント実装 + docs/（仕様・振舞・APIスキーマ） |
-| `shirokuro-backend` | Flask API実装 + docs/（実装上の制約・設計判断） |
-
-### 分離の理由
-
-- フロントのみ修正するときにバックへの影響を防ぐ
-- エージェントが意図せず両側を修正することを物理的に防ぐ
-- 変更の影響範囲をリポジトリレベルで明確にする
+```
+shirokuro-fullstack/
+├── docs/        # 共通ドキュメント（APIスキーマ・概要・意思決定）
+├── frontend/    # Reactフロント実装
+└── backend/     # Flask API実装
+```
 
 ### APIスキーマの所在
 
-`shirokuro-frontend/docs/api/` に置く。フロントのUIから必要なデータが決まり、それがAPIを規定するため、フロントが正となる。
-
-### バックエンドでのAPI参照方法
-
-git sparse-checkout で `shirokuro-frontend` の `docs/api/` だけを取得し、`docs/api/` にシンボリックリンクで参照する。
-
-```bash
-# 初回セットアップ
-git clone --no-checkout git@github.com:masakazu2025/shirokuro-frontend.git .frontend-api
-cd .frontend-api
-git sparse-checkout init --cone
-git sparse-checkout set docs/api
-git checkout main
-cd ..
-
-# シンボリックリンクを作成
-ln -s ../.frontend-api/docs/api docs/api
-```
-
-- `.frontend-api/` と `docs/api` は `.gitignore` に追加し、自リポジトリには含めない
-- APIスキーマが更新されたら `.frontend-api/` で `git pull` する
-
-```bash
-cd .frontend-api && git pull
-```
+`docs/api/` に置く。フロントとバックエンドの共通契約として管理する。
+フロントのUIから必要なデータが決まり、それがAPIを規定する。
 
 ## 公開範囲
 
@@ -127,3 +100,12 @@ main → hotfix/xxx → PR → main
 
 緊急度が高い場合でも必ずPRを通す。直接pushは禁止。
 
+## Electronについて
+
+開発中はブラウザ（localhost:5174）で動作させる。Electronでしか実現できない機能：
+
+- ファイルのフルパス取得
+- Flaskサーバーの自動起動
+
+これら以外はHTTP REST API経由で実装し、ブラウザでも動く状態を維持する。
+Electronへのラップは開発の最終フェーズで行う。

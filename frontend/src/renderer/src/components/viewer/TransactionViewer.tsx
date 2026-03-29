@@ -1,6 +1,7 @@
-import { makeStyles, tokens, Text, Badge } from "@fluentui/react-components";
+import { makeStyles, tokens, Text, TabList, Tab } from "@fluentui/react-components";
+import { useState, useEffect } from "react";
 import type { ReactElement } from "react";
-import type { TransactionItem } from "../../mock/terminals";
+import type { TransactionFileContent, FileSection } from "../../api/transactionApi";
 import { TextViewer } from "./TextViewer";
 import { CsvViewer } from "./CsvViewer";
 import { JsonViewer } from "./JsonViewer";
@@ -15,10 +16,14 @@ const useStyles = makeStyles({
   header: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
     padding: "8px 16px",
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     flexShrink: 0,
+  },
+  tabs: {
+    flexShrink: 0,
+    paddingLeft: "8px",
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   content: {
     flexGrow: 1,
@@ -33,41 +38,65 @@ const useStyles = makeStyles({
   },
 });
 
-const TYPE_LABELS = { text: "テキスト", csv: "CSV", json: "JSON", image: "画像" };
-const TYPE_COLORS = {
-  text: "informative",
-  csv: "success",
-  json: "brand",
-  image: "warning",
-} as const;
+function SectionContent({ section }: { section: FileSection }): ReactElement {
+  if (section.type === "text") {
+    return <TextViewer value={section.value as string} />;
+  }
+  if (section.type === "csv") {
+    return <CsvViewer value={section.value as Record<string, string>[]} />;
+  }
+  return <JsonViewer value={section.value} />;
+}
 
 type Props = {
-  item: TransactionItem | null;
+  file: TransactionFileContent | null;
+  noFiles?: boolean;
 };
 
-export function TransactionViewer({ item }: Props): ReactElement {
+export function TransactionViewer({ file, noFiles }: Props): ReactElement {
   const styles = useStyles();
+  const [activeTab, setActiveTab] = useState<string>("");
 
-  if (!item) {
+  useEffect(() => {
+    if (file && file.data.length > 0) {
+      setActiveTab(file.data[0].name);
+    }
+  }, [file]);
+
+  if (!file) {
+    const message = noFiles ? "項目が存在しません" : "項目を選択してください";
     return (
       <div className={styles.empty}>
-        <Text size={300}>項目を選択してください</Text>
+        <Text size={300}>{message}</Text>
       </div>
     );
   }
 
+  const activeSection = file.data.find((s) => s.name === activeTab) ?? file.data[0];
+  const hasMultipleSections = file.data.length > 1;
+
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <Badge color={TYPE_COLORS[item.type]} appearance="filled" size="small">
-          {TYPE_LABELS[item.type]}
-        </Badge>
-        <Text size={300} weight="semibold">{item.name}</Text>
+        <Text size={300} weight="semibold">{file.display_name}</Text>
       </div>
+      {hasMultipleSections && (
+        <div className={styles.tabs}>
+          <TabList
+            selectedValue={activeTab}
+            onTabSelect={(_, d) => setActiveTab(d.value as string)}
+            size="small"
+          >
+            {file.data.map((section) => (
+              <Tab key={section.name} value={section.name}>
+                {section.label}
+              </Tab>
+            ))}
+          </TabList>
+        </div>
+      )}
       <div className={styles.content}>
-        {item.type === "text" && <TextViewer content={item.content} />}
-        {item.type === "csv" && <CsvViewer content={item.content} />}
-        {item.type === "json" && <JsonViewer content={item.content} />}
+        {activeSection && <SectionContent section={activeSection} />}
       </div>
     </div>
   );

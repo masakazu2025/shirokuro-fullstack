@@ -1,9 +1,9 @@
 ---
-id: IDEA-006
+id: MEMO-006
 title: 外付けビューアウィンドウ設計
 status: discussing
 date: 2026-03-24
-parent: IDEA-004
+parent: MEMO-004
 ---
 
 ## 目的・背景

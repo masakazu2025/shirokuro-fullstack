@@ -1,9 +1,9 @@
 ---
-id: IDEA-007
+id: MEMO-007
 title: 保存・採取方法の設計
 status: discussing
 date: 2026-03-24
-parent: IDEA-004
+parent: MEMO-004
 ---
 
 ## 目的・背景

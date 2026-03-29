@@ -1,5 +1,5 @@
 ---
-id: IDEA-002
+id: MEMO-002
 title: 画面遷移Excelファイル作成ツール
 status: discussing
 date: 2026-03-23

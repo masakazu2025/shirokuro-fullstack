@@ -13,7 +13,7 @@ from usecase.terminal.probe_port import TerminalProbe
 logger = logging.getLogger(__name__)
 
 
-def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None) -> Flask:
+def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None, transactions_root: Path | None = None) -> Flask:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
@@ -29,6 +29,7 @@ def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None)
         probe = WindowsTerminalProbe()
     app.config["terminal_usecase"] = usecase
     app.config["terminal_probe"] = probe
+    app.config["transactions_root"] = transactions_root or Path(__file__).parent.parent.parent / "data" / "transactions"
 
     interval = int(os.environ.get("MONITORING_INTERVAL_SEC", "60"))
     worker = MonitoringWorker(repo, interval_sec=interval)

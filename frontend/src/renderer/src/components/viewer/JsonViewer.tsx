@@ -32,18 +32,12 @@ function highlight(json: string): string {
 }
 
 type Props = {
-  content: string;
+  value: unknown;
 };
 
-export function JsonViewer({ content }: Props): ReactElement {
+export function JsonViewer({ value }: Props): ReactElement {
   const styles = useStyles();
-
-  let formatted = content;
-  try {
-    formatted = JSON.stringify(JSON.parse(content), null, 2);
-  } catch {
-    // そのまま表示
-  }
+  const formatted = JSON.stringify(value, null, 2);
 
   return (
     <div className={styles.root}>

@@ -1,5 +1,5 @@
 ---
-id: IDEA-001
+id: MEMO-001
 title: 比較ツール（Excelマクロ実行）
 status: discussing
 date: 2026-03-23

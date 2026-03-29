@@ -1,4 +1,4 @@
-import { makeStyles, tokens, Text } from "@fluentui/react-components";
+import { makeStyles, tokens } from "@fluentui/react-components";
 import type { ReactElement } from "react";
 
 const useStyles = makeStyles({
@@ -38,42 +38,31 @@ const useStyles = makeStyles({
 });
 
 type Props = {
-  content: string;
+  value: Record<string, string>[];
 };
 
-function parseCsv(raw: string): string[][] {
-  return raw
-    .trim()
-    .split("\n")
-    .map((line) => line.split(","));
-}
-
-export function CsvViewer({ content }: Props): ReactElement {
+export function CsvViewer({ value }: Props): ReactElement {
   const styles = useStyles();
-  const rows = parseCsv(content);
-  const [header, ...body] = rows;
 
-  if (!header) return <></>;
+  if (value.length === 0) return <></>;
+
+  const headers = Object.keys(value[0]);
 
   return (
     <div className={styles.root}>
       <table className={styles.table}>
         <thead>
           <tr>
-            {header.map((cell, i) => (
-              <th key={i} className={styles.th}>
-                {cell}
-              </th>
+            {headers.map((h) => (
+              <th key={h} className={styles.th}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {body.map((row, ri) => (
+          {value.map((row, ri) => (
             <tr key={ri} className={ri % 2 === 0 ? styles.trEven : styles.trOdd}>
-              {row.map((cell, ci) => (
-                <td key={ci} className={styles.td}>
-                  {cell}
-                </td>
+              {headers.map((h) => (
+                <td key={h} className={styles.td}>{row[h]}</td>
               ))}
             </tr>
           ))}

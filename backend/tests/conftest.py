@@ -13,7 +13,11 @@ class FakeProbe(TerminalProbe):
 @pytest.fixture
 def client(tmp_path):
     os.environ["MONITORING_INTERVAL_SEC"] = "99999"
-    app = create_app(data_dir=tmp_path, probe=FakeProbe())
+    app = create_app(
+        data_dir=tmp_path,
+        probe=FakeProbe(),
+        transactions_root=tmp_path / "transactions",
+    )
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
