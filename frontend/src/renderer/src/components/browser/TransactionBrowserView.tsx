@@ -7,7 +7,7 @@ import { ItemList } from "../terminal/ItemList";
 import { MainPane } from "../layout/MainPane";
 import { TransactionViewer } from "../viewer/TransactionViewer";
 import { mockTerminals } from "../../mock/terminals";
-import type { Transaction, TransactionItem } from "../../mock/terminals";
+import type { Transaction, TransactionFile } from "../../mock/terminals";
 
 const useStyles = makeStyles({
   root: {
@@ -29,7 +29,7 @@ export function TransactionBrowserView(): ReactElement {
   const [selectedTerminalId, setSelectedTerminalId] = useState(mockTerminals[0].id);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [selectedItem, setSelectedItem] = useState<TransactionItem | null>(null);
+  const [selectedFile, setSelectedFile] = useState<TransactionFile | null>(null);
 
   const terminal = useMemo(
     () => mockTerminals.find((t) => t.id === selectedTerminalId) ?? mockTerminals[0],
@@ -49,22 +49,22 @@ export function TransactionBrowserView(): ReactElement {
     setSelectedTerminalId(id);
     setSelectedDate("");
     setSelectedTransaction(null);
-    setSelectedItem(null);
+    setSelectedFile(null);
   };
 
   const handleDateChange = (date: string): void => {
     setSelectedDate(date);
     setSelectedTransaction(null);
-    setSelectedItem(null);
+    setSelectedFile(null);
   };
 
   const handleSelectTransaction = (tx: Transaction): void => {
     setSelectedTransaction(tx);
-    setSelectedItem(null);
+    setSelectedFile(null);
   };
 
-  const handleSelectItem = (item: TransactionItem): void => {
-    setSelectedItem(item);
+  const handleSelectFile = (file: TransactionFile): void => {
+    setSelectedFile(file);
   };
 
   return (
@@ -84,12 +84,16 @@ export function TransactionBrowserView(): ReactElement {
           onSelect={handleSelectTransaction}
         />
         <ItemList
-          items={selectedTransaction?.items ?? []}
-          selectedId={selectedItem?.id ?? null}
-          onSelect={handleSelectItem}
+          files={selectedTransaction?.files ?? []}
+          selectedId={selectedFile?.id ?? null}
+          onSelect={handleSelectFile}
+          transactionSelected={selectedTransaction !== null}
         />
         <MainPane>
-          <TransactionViewer item={selectedItem} />
+          <TransactionViewer
+            file={selectedFile}
+            noFiles={selectedTransaction !== null && selectedTransaction.files.length === 0}
+          />
         </MainPane>
       </div>
     </div>

@@ -81,10 +81,10 @@ export function TransactionList({ transactions, selectedId, onSelect }: Props): 
             onClick={() => onSelect(tx)}
           >
             <Text size={200} weight="semibold" className={styles.no}>
-              {tx.no}
+              {tx.id}
             </Text>
             <Text size={100} className={styles.time}>
-              {tx.time}
+              {tx.timestamp.slice(11, 19)}
             </Text>
             {tx.id === latestId && (
               <Badge size="small" color="brand" appearance="tint">最新</Badge>

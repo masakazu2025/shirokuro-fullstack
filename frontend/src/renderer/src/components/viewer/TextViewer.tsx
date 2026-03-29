@@ -19,14 +19,14 @@ const useStyles = makeStyles({
 });
 
 type Props = {
-  content: string;
+  value: string;
 };
 
-export function TextViewer({ content }: Props): ReactElement {
+export function TextViewer({ value }: Props): ReactElement {
   const styles = useStyles();
   return (
     <div className={styles.root}>
-      <pre className={styles.pre}>{content}</pre>
+      <pre className={styles.pre}>{value}</pre>
     </div>
   );
 }
