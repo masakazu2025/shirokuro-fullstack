@@ -1,5 +1,5 @@
 ---
-id: IDEA-004
+id: MEMO-004
 title: 画面構成・操作フローの設計方針
 status: discussing
 date: 2026-03-23

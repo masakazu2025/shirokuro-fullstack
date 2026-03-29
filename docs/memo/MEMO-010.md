@@ -1,5 +1,5 @@
 ---
-id: IDEA-010
+id: MEMO-010
 title: エンドユーザー向け操作マニュアル
 status: discussing
 date: 2026-03-26

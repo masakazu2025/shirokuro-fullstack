@@ -71,7 +71,7 @@ docs/
 ├── rules/               # 開発ルール
 ├── behaviors/           # 振舞定義（FB-xxx）
 ├── decisions/           # ADR（意思決定の記録）
-└── ideas/               # ブレスト・議論ログ
+└── memo/               # ブレスト・議論ログ
 ```
 
 ## 開発サーバーの起動
@@ -84,8 +84,7 @@ poetry run flask run     # 開発サーバー起動（localhost:4696）
 ## APIについて
 
 - Base URL: `http://localhost:4696/api`
-- スキーマは `../frontend/docs/api/` が正。バックエンドはこれを参照して実装する
-- フロントエンドが API を規定する（フロント駆動）
+- スキーマは `../docs/api/` が正。バックエンドはこれを参照して実装する
 
 ---
 
@@ -140,7 +139,7 @@ poetry run flask run     # 開発サーバー起動（localhost:4696）
 `/phase idea` 宣言時に適用する。詳細は [docs/CLAUDE.md](docs/CLAUDE.md) を参照。
 
 - 議論・整理・選択肢の提示のみ行う
-- ファイルを自分から作成しない（ユーザーが明示的に指示した場合のみ `docs/ideas/` に記録する）
+- ファイルを自分から作成しない（ユーザーが明示的に指示した場合のみ `docs/memo/` に記録する）
 - 実装・テスト・仕様の提案をしない
 - スコープが広がりすぎたら指摘する
 

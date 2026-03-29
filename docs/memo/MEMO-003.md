@@ -1,5 +1,5 @@
 ---
-id: IDEA-003
+id: MEMO-003
 title: 不具合資料採取ツール
 status: closed
 date: 2026-03-23

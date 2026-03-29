@@ -1,9 +1,9 @@
 ---
-id: IDEA-008
+id: MEMO-008
 title: 端末・日付のグローバル状態管理
 status: discussing
 date: 2026-03-24
-parent: IDEA-004
+parent: MEMO-004
 ---
 
 ## 目的・背景

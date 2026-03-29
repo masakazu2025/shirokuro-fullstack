@@ -1,5 +1,5 @@
 ---
-id: IDEA-012
+id: MEMO-012
 title: フロントエンドの開発フロー
 status: discussing
 date: 2026-03-26

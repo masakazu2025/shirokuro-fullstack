@@ -1,5 +1,5 @@
 ---
-id: IDEA-011
+id: MEMO-011
 title: テスト品質の俯瞰構造（テストの地図）
 status: discussing
 date: 2026-03-26

@@ -6,37 +6,19 @@ status: active
 
 ## リポジトリ構成
 
-フロントエンドとバックエンドは**別リポジトリ**で管理する。
+フロントエンドとバックエンドは**モノレポ**（`shirokuro-fullstack`）で管理する。
 
-| リポジトリ | 内容 |
-|-----------|------|
-| `shirokuro-frontend` | Reactフロント実装 + docs/（仕様・振舞・APIスキーマ） |
-| `shirokuro-backend` | Flask API実装 + docs/（実装上の制約・設計判断） |
-
-### 分離の理由
-
-- フロントのみ修正するときにバックへの影響を防ぐ
-- エージェントが意図せず両側を修正することを物理的に防ぐ
-- 変更の影響範囲をリポジトリレベルで明確にする
+```
+shirokuro-fullstack/
+├── docs/        # 共通ドキュメント（APIスキーマ・概要・意思決定）
+├── frontend/    # Reactフロント実装
+└── backend/     # Flask API実装
+```
 
 ### APIスキーマの所在
 
-`shirokuro-frontend/docs/api/` に置く。フロントのUIから必要なデータが決まり、それがAPIを規定するため、フロントが正となる。
-
-### バックエンドでのAPI参照方法
-
-バックエンドは git sparse-checkout で `shirokuro-frontend` の `docs/api/` だけを取得する。
-
-```bash
-git clone --no-checkout https://github.com/xxx/shirokuro-frontend.git frontend-api
-cd frontend-api
-git sparse-checkout init --cone
-git sparse-checkout set docs/api
-git checkout main
-```
-
-- バックエンド側では `docs/api/` を `.gitignore` に追加し、自リポジトリには含めない
-- APIスキーマが更新されたら、バックエンド側で再度 `git pull` して取得する
+`docs/api/` に置く。フロントとバックエンドの共通契約として管理する。
+フロントのUIから必要なデータが決まり、それがAPIを規定する。
 
 ## 公開範囲
 

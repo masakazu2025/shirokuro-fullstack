@@ -1,5 +1,5 @@
 ---
-id: IDEA-005
+id: MEMO-005
 title: 開発プロセス整備の並行テーマ化
 status: discussing
 date: 2026-03-24
