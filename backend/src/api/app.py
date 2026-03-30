@@ -1,8 +1,9 @@
 from __future__ import annotations
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 
 from infra.config.file_config_loader import load_file_configs
 from infra.logger import setup_logging
@@ -13,36 +14,71 @@ from infra.worker.monitoring_worker import MonitoringWorker
 from usecase.terminal.terminal_usecase import TerminalUsecase
 from usecase.terminal.probe_port import TerminalProbe
 from usecase.transaction.transaction_usecase import TransactionUsecase
+from domain.transaction.transaction import FileConfig
 
 logger = logging.getLogger(__name__)
 
 
-def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None, transactions_root: Path | None = None) -> Flask:
-    setup_logging()
-    app = Flask(__name__)
+@dataclass
+class AppContainer:
+    terminal_usecase: TerminalUsecase
+    transaction_usecase: TransactionUsecase
+    terminal_probe: TerminalProbe
+    monitoring_worker: MonitoringWorker
 
+
+def build_container(
+    data_dir: Path | None = None,
+    probe: TerminalProbe | None = None,
+    transactions_root: Path | None = None,
+    file_configs: list[FileConfig] | None = None,
+) -> AppContainer:
     if data_dir is None:
         data_dir = Path(__file__).parent.parent.parent / "data"
 
     repo = TerminalJsonRepository(data_dir / "terminals.json")
-    usecase = TerminalUsecase(repo)
+    terminal_usecase = TerminalUsecase(repo)
+
     if probe is None:
         probe = WindowsTerminalProbe()
-    app.config["terminal_usecase"] = usecase
-    app.config["terminal_probe"] = probe
-    tx_root = transactions_root or Path(__file__).parent.parent.parent / "data" / "transactions"
-    file_config_path = Path(__file__).parent.parent.parent / "data" / "file_config.json"
-    file_configs = load_file_configs(file_config_path)
+
+    tx_root = transactions_root or data_dir / "transactions"
+
+    if file_configs is None:
+        file_config_path = data_dir / "file_config.json"
+        file_configs = load_file_configs(file_config_path)
+
     tx_repo = LocalTransactionRepository(tx_root, file_configs=file_configs)
-    app.config["transaction_usecase"] = TransactionUsecase(tx_repo)
+    transaction_usecase = TransactionUsecase(tx_repo)
 
     interval = int(os.environ.get("MONITORING_INTERVAL_SEC", "60"))
     worker = MonitoringWorker(repo, interval_sec=interval)
-    app.config["monitoring_worker"] = worker
-    worker.start()
+
+    return AppContainer(
+        terminal_usecase=terminal_usecase,
+        transaction_usecase=transaction_usecase,
+        terminal_probe=probe,
+        monitoring_worker=worker,
+    )
+
+
+def create_app(container: AppContainer | None = None, **kwargs) -> Flask:
+    setup_logging()
+
+    if container is None:
+        container = build_container(**kwargs)
+
+    app = Flask(__name__)
+
+    app.config["terminal_usecase"] = container.terminal_usecase
+    app.config["terminal_probe"] = container.terminal_probe
+    app.config["transaction_usecase"] = container.transaction_usecase
+    app.config["monitoring_worker"] = container.monitoring_worker
+
+    container.monitoring_worker.start()
 
     logger.info("[startup] probing all terminals...")
-    usecase.probe_and_save(probe)
+    container.terminal_usecase.probe_and_save(container.terminal_probe)
     logger.info("[startup] probe complete")
 
     @app.after_request

@@ -1,13 +1,21 @@
 import os
 import pytest
 
+from domain.transaction.transaction import FileConfig
 from usecase.terminal.probe_port import TerminalProbe
-from api.app import create_app
+from infra.processor.registry import _REGISTRY
+from infra.processor._fake_multi import fake_text_multi, fake_csv_multi, fake_json_multi
+from api.app import build_container, create_app
 
 
 class FakeProbe(TerminalProbe):
     def probe(self, ip: str) -> tuple[str, str]:
         return "offline", "2026-03-28"
+
+
+_REGISTRY["fake.multi.text"] = fake_text_multi
+_REGISTRY["fake.multi.csv"] = fake_csv_multi
+_REGISTRY["fake.multi.json"] = fake_json_multi
 
 
 def _build_transactions(root):
@@ -34,16 +42,25 @@ def _build_transactions(root):
             (tx_dir / filename).write_text(content, encoding="utf-8")
 
 
+_MULTI_FILE_CONFIGS = [
+    FileConfig(filename_pattern=r"file_b\.dat", processor="fake.multi.text"),
+    FileConfig(filename_pattern=r"file_d\.dat", processor="fake.multi.csv"),
+    FileConfig(filename_pattern=r"file_f\.dat", processor="fake.multi.json"),
+]
+
+
 @pytest.fixture
 def client(tmp_path):
     os.environ["MONITORING_INTERVAL_SEC"] = "99999"
     transactions_root = tmp_path / "transactions"
     _build_transactions(transactions_root)
-    app = create_app(
+    container = build_container(
         data_dir=tmp_path,
         probe=FakeProbe(),
         transactions_root=transactions_root,
+        file_configs=_MULTI_FILE_CONFIGS,
     )
+    app = create_app(container=container)
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
