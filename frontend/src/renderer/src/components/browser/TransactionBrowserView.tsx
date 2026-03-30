@@ -6,7 +6,8 @@ import { TransactionList } from "../terminal/TransactionList";
 import { ItemList } from "../terminal/ItemList";
 import { MainPane } from "../layout/MainPane";
 import { TransactionViewer } from "../viewer/TransactionViewer";
-import { mockTerminals } from "../../mock/terminals";
+import { terminalApi } from "../../api/terminalApi";
+import type { Terminal } from "../../api/terminalApi";
 import { transactionApi } from "../../api/transactionApi";
 import type { Transaction } from "../../api/transactionApi";
 import type { TransactionFile } from "../../mock/terminals";
@@ -29,31 +30,44 @@ const useStyles = makeStyles({
 export function TransactionBrowserView(): ReactElement {
   const styles = useStyles();
 
-  const [selectedTerminalId, setSelectedTerminalId] = useState(mockTerminals[0].id);
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [selectedTerminalId, setSelectedTerminalId] = useState("");
+  const [dates, setDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [files, setFiles] = useState<TransactionFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<TransactionFileContent | null>(null);
 
-  const terminal = useMemo(
-    () => mockTerminals.find((t) => t.id === selectedTerminalId) ?? mockTerminals[0],
-    [selectedTerminalId]
-  );
-
-  const dates = useMemo(() => terminal.dateFolders.map((d) => d.date), [terminal]);
-  const currentDate = selectedDate || dates[0] || "";
-
+  // 端末一覧を取得
   useEffect(() => {
-    if (!currentDate) return;
-    transactionApi.listByDate(selectedTerminalId, currentDate).then(setTransactions);
-  }, [selectedTerminalId, currentDate]);
+    terminalApi.list().then((list) => {
+      setTerminals(list);
+      if (list.length > 0) setSelectedTerminalId(list[0].id);
+    });
+  }, []);
+
+  // 端末が変わったら日付一覧を取得
+  useEffect(() => {
+    if (!selectedTerminalId) return;
+    transactionApi.listAll(selectedTerminalId).then((txs) => {
+      const unique = [...new Set(txs.map((tx) => tx.date))].sort().reverse();
+      setDates(unique);
+      setSelectedDate(unique[0] ?? "");
+    });
+  }, [selectedTerminalId]);
+
+  // 日付が変わったら取引一覧を取得
+  useEffect(() => {
+    if (!selectedTerminalId || !selectedDate) return;
+    transactionApi.listByDate(selectedTerminalId, selectedDate).then(setTransactions);
+  }, [selectedTerminalId, selectedDate]);
 
   useEffect(() => {
     if (!selectedTransaction) { setFiles([]); return; }
     transactionApi.listFiles(selectedTerminalId, selectedTransaction.date, selectedTransaction.id)
       .then((entries) =>
-        entries.map((e, i) => ({
+        entries.map((e) => ({
           id: `${selectedTransaction.id}-${e.filename}`,
           filename: e.filename,
           display_name: e.display_name,
@@ -63,6 +77,8 @@ export function TransactionBrowserView(): ReactElement {
       )
       .then(setFiles);
   }, [selectedTransaction, selectedTerminalId]);
+
+  const currentDate = selectedDate || dates[0] || "";
 
   const handleTerminalChange = (id: string): void => {
     setSelectedTerminalId(id);
@@ -92,7 +108,7 @@ export function TransactionBrowserView(): ReactElement {
   return (
     <div className={styles.root}>
       <FilterBar
-        terminals={mockTerminals}
+        terminals={terminals}
         selectedTerminalId={selectedTerminalId}
         onTerminalChange={handleTerminalChange}
         dates={dates}

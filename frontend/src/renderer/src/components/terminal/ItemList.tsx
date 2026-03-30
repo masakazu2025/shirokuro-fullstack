@@ -100,8 +100,8 @@ export function ItemList({ files, selectedId, onSelect, transactionSelected }: P
               onClick={() => onSelect(file)}
             >
               <span className={styles.icon}>{TYPE_ICONS[firstType]}</span>
-              <Text size={200} className={styles.name} title={file.display_name}>
-                {file.display_name}
+              <Text size={200} className={styles.name} title={file.display_name ?? file.filename}>
+                {file.display_name ?? file.filename}
               </Text>
             </div>
           );
