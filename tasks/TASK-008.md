@@ -1,6 +1,6 @@
 ---
 id: TASK-008
-title: 用語定義・ドキュメント整理
+title: ドキュメント整理
 status: open
 ---
 
@@ -11,9 +11,12 @@ status: open
 
 ## やること
 
-- `docs/` に用語集（Section / FileConfig / プロセッサ / TransactionFile など）を作成
 - README を見せられる状態に整備
 - API ドキュメントを実装と同期させる
+
+## やらないこと
+
+- 用語集の作成（優先度低のため省略）
 
 ## 優先度
 

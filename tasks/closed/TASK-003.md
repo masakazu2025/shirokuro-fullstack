@@ -1,7 +1,7 @@
 ---
 id: TASK-003
 title: terminals/index.md のレスポンス・リクエスト記述をテーブル形式に書き換え
-status: open
+status: closed
 ---
 
 ## 概要

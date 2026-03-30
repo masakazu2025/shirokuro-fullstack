@@ -1,7 +1,7 @@
 ---
 id: TASK-002
 title: API設計方針をdocsにまとめる
-status: open
+status: closed
 ---
 
 ## 概要
