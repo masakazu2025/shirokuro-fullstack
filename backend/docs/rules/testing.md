@@ -17,3 +17,5 @@ status: active
 | unit | domain・usecase のロジック |
 | integration | infrastructure（リポジトリ実装・外部I/O） |
 | e2e | APIエンドポイント（HTTPクライアント経由） |
+
+各種別の実装方針は [tests/CLAUDE.md](../../tests/CLAUDE.md) を参照。
