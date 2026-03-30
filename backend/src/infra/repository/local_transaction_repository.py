@@ -68,7 +68,7 @@ def _parse_as_csv(text: str) -> tuple[list[dict], list[str]]:
     """テキストを CSV としてパース。戻り値: (rows, warnings)"""
     warnings: list[str] = []
     try:
-        df = pd.read_csv(io.StringIO(text), header=None, dtype=str)
+        df = pd.read_csv(io.StringIO(text), header=None, dtype=str, keep_default_na=False)
         df.columns = [f"col_{i}" for i in range(len(df.columns))]
         return df.to_dict(orient="records"), warnings
     except Exception as e:

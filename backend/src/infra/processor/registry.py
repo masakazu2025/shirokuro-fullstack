@@ -7,8 +7,11 @@ from domain.transaction.transaction import Section
 # processor の型: デコード済みテキストを受け取り (sections, warnings) を返す
 ProcessorFunc = Callable[[str], tuple[list[Section], list[str]]]
 
+from infra.processor._fake_multi import fake_mixed_multi
+
 _REGISTRY: dict[str, ProcessorFunc] = {
     # 例: "pos.header": pos_header_processor,
+    "fake.multi.mixed": fake_mixed_multi,
 }
 
 

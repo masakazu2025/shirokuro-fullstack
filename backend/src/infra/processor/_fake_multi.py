@@ -49,3 +49,16 @@ def fake_json_multi(text: str) -> tuple[list[Section], list[str]]:
         Section(name="section_1", label="セクション1", type="json", value=value),
         Section(name="section_2", label="セクション2", type="json", value=value),
     ], []
+
+
+def fake_mixed_multi(text: str) -> tuple[list[Section], list[str]]:
+    """テキスト・CSV・JSON の 3 セクションを固定で返す。タブ表示の動作確認用。"""
+    return [
+        Section(name="section_text", label="テキスト", type="text", value=text),
+        Section(name="section_csv",  label="CSV",    type="csv",  value=[
+            {"col_0": "CODE",         "col_1": "NAME",   "col_2": "QTY"},
+            {"col_0": "4901234567890","col_1": "ITEM_A", "col_2": "1"},
+            {"col_0": "4901234567894","col_1": "ITEM_E", "col_2": "2"},
+        ]),
+        Section(name="section_json", label="JSON",   type="json", value={"source": "fake_mixed", "raw": text}),
+    ], []
