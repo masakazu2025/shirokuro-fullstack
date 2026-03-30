@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from domain.transaction.transaction import Transaction, TransactionFile, FileContent, FileConfig, Section
+from infra.processor.registry import get_processor
 from usecase.transaction.port import TransactionRepository
 
 _BINARY_PROBE_SIZE = 512
@@ -167,11 +168,17 @@ class LocalTransactionRepository(TransactionRepository):
         tx_dir = self._find_tx_dir(terminal_id, tx_id)
         if tx_dir is None:
             return []
-        return [
-            TransactionFile(filename=f.name)
-            for f in sorted(tx_dir.iterdir())
-            if f.is_file()
-        ]
+        files = []
+        for f in sorted(tx_dir.iterdir()):
+            if not f.is_file():
+                continue
+            matched = next((fc for fc in self._file_configs if fc.matches(f.name)), None)
+            files.append(TransactionFile(
+                filename=f.name,
+                display_name=matched.display_name if matched else None,
+                order=matched.order if matched else None,
+            ))
+        return files
 
     def get_transaction_file_content(self, terminal_id: str, tx_id: str, filename: str) -> FileContent | None:
         tx_dir = self._find_tx_dir(terminal_id, tx_id)
@@ -189,11 +196,27 @@ class LocalTransactionRepository(TransactionRepository):
             )
 
         text, warnings = _read_text(file_path, self._file_configs)
-        section, parse_warnings = _build_section(filename, text)
+
+        processor_name = next(
+            (fc.processor for fc in self._file_configs if fc.matches(filename) and fc.processor),
+            None,
+        )
+        if processor_name is not None:
+            processor = get_processor(processor_name)
+            if processor is not None:
+                sections, parse_warnings = processor(text)
+            else:
+                warnings.append(f"processor not found: {processor_name}")
+                section, parse_warnings = _build_section(filename, text)
+                sections = [section]
+        else:
+            section, parse_warnings = _build_section(filename, text)
+            sections = [section]
+
         warnings.extend(parse_warnings)
         return FileContent(
             filename=filename,
             display_name=None,
-            data=[section],
+            data=sections,
             warnings=warnings,
         )

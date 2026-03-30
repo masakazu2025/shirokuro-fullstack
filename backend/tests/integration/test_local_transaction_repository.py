@@ -82,6 +82,42 @@ def test_find_transaction_files_tx_not_found(repo):
     assert result == []
 
 
+def test_find_transaction_files_display_name_and_order_from_config(tmp_path):
+    root = tmp_path / "transactions"
+    tx = root / "t1" / "2026-03-21" / "TX-20260321091234"
+    tx.mkdir(parents=True)
+    (tx / "header.dat").write_text("header", encoding="utf-8")
+    (tx / "detail.dat").write_text("detail", encoding="utf-8")
+
+    configs = [
+        FileConfig(filename_pattern=r"header\.dat", display_name="ヘッダー", order=1),
+        FileConfig(filename_pattern=r"detail\.dat", display_name="明細", order=2),
+    ]
+    repo = LocalTransactionRepository(root, file_configs=configs)
+    result = repo.find_transaction_files("t1", "TX-20260321091234")
+
+    by_name = {f.filename: f for f in result}
+    assert by_name["header.dat"].display_name == "ヘッダー"
+    assert by_name["header.dat"].order == 1
+    assert by_name["detail.dat"].display_name == "明細"
+    assert by_name["detail.dat"].order == 2
+
+
+def test_find_transaction_files_unmatched_config_returns_none(tmp_path):
+    root = tmp_path / "transactions"
+    tx = root / "t1" / "2026-03-21" / "TX-20260321091234"
+    tx.mkdir(parents=True)
+    (tx / "other.dat").write_text("data", encoding="utf-8")
+
+    configs = [FileConfig(filename_pattern=r"header\.dat", display_name="ヘッダー", order=1)]
+    repo = LocalTransactionRepository(root, file_configs=configs)
+    result = repo.find_transaction_files("t1", "TX-20260321091234")
+
+    assert result[0].filename == "other.dat"
+    assert result[0].display_name is None
+    assert result[0].order is None
+
+
 # --- get_transaction_file_content ---
 
 def test_get_transaction_file_content(repo):

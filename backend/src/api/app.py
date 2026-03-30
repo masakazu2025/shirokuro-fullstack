@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from flask import Flask, jsonify, request
 
+from infra.config.file_config_loader import load_file_configs
+from infra.logger import setup_logging
 from infra.repository.terminal_json_repository import TerminalJsonRepository
 from infra.repository.local_transaction_repository import LocalTransactionRepository
 from infra.system.terminal_probe import WindowsTerminalProbe
@@ -16,10 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None, transactions_root: Path | None = None) -> Flask:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-    )
+    setup_logging()
     app = Flask(__name__)
 
     if data_dir is None:
@@ -32,7 +31,9 @@ def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None,
     app.config["terminal_usecase"] = usecase
     app.config["terminal_probe"] = probe
     tx_root = transactions_root or Path(__file__).parent.parent.parent / "data" / "transactions"
-    tx_repo = LocalTransactionRepository(tx_root)
+    file_config_path = Path(__file__).parent.parent.parent / "data" / "file_config.json"
+    file_configs = load_file_configs(file_config_path)
+    tx_repo = LocalTransactionRepository(tx_root, file_configs=file_configs)
     app.config["transaction_usecase"] = TransactionUsecase(tx_repo)
 
     interval = int(os.environ.get("MONITORING_INTERVAL_SEC", "60"))

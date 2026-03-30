@@ -64,8 +64,8 @@ def test_get_file_text_multi(client):
 
 # --- ファイル内容取得: csv × 単一セクション ---
 def test_get_file_csv_single(client):
-    res = client.get("/api/terminals/t1/transactions/2026-03-21/tx001/files/file_c.dat")
-    _assert_file_response(res, "file_c.dat")
+    res = client.get("/api/terminals/t1/transactions/2026-03-21/tx001/files/file_c.csv")
+    _assert_file_response(res, "file_c.csv")
     assert len(res.json["data"]) == 1
     assert res.json["data"][0]["type"] == "csv"
     assert isinstance(res.json["data"][0]["value"], list)
@@ -82,8 +82,8 @@ def test_get_file_csv_multi(client):
 
 # --- ファイル内容取得: json × 単一セクション ---
 def test_get_file_json_single(client):
-    res = client.get("/api/terminals/t1/transactions/2026-03-21/tx001/files/file_e.dat")
-    _assert_file_response(res, "file_e.dat")
+    res = client.get("/api/terminals/t1/transactions/2026-03-21/tx001/files/file_e.json")
+    _assert_file_response(res, "file_e.json")
     assert len(res.json["data"]) == 1
     assert res.json["data"][0]["type"] == "json"
     assert isinstance(res.json["data"][0]["value"], dict)

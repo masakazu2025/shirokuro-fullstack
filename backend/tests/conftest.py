@@ -14,9 +14,9 @@ def _build_transactions(root):
     files = {
         ("t1", "2026-03-21", "tx001"): {
             "file_a.dat": "Line 1: Sample text content\nLine 2: Another line",
-            "file_c.dat": "col1,col2\nval1,val2",
+            "file_c.csv": "col1,col2\nval1,val2",
             "file_d.dat": "col1,col2\na1,a2\na3,a4",
-            "file_e.dat": '{"key1": "value1", "key2": 42}',
+            "file_e.json": '{"key1": "value1", "key2": 42}',
             "file_f.dat": '{"type": "section1"}',
         },
         ("t1", "2026-03-21", "tx002"): {
