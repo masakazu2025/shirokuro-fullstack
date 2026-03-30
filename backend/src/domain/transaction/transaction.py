@@ -1,6 +1,17 @@
 from __future__ import annotations
+import re
 from dataclasses import dataclass, field
 from typing import Any
+
+
+@dataclass
+class FileConfig:
+    """ファイル設定（config由来）。今フェーズは encoding のみ。"""
+    filename_pattern: str
+    encoding: str | None = None
+
+    def matches(self, filename: str) -> bool:
+        return bool(re.search(self.filename_pattern, filename))
 
 
 @dataclass
@@ -54,10 +65,12 @@ class FileContent:
     filename: str
     display_name: str | None
     data: list[Section]
+    warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
             "filename": self.filename,
             "display_name": self.display_name,
             "data": [s.to_dict() for s in self.data],
+            "warnings": self.warnings,
         }

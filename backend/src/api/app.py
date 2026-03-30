@@ -5,10 +5,12 @@ from pathlib import Path
 from flask import Flask, jsonify, request
 
 from infra.repository.terminal_json_repository import TerminalJsonRepository
+from infra.repository.local_transaction_repository import LocalTransactionRepository
 from infra.system.terminal_probe import WindowsTerminalProbe
 from infra.worker.monitoring_worker import MonitoringWorker
 from usecase.terminal.terminal_usecase import TerminalUsecase
 from usecase.terminal.probe_port import TerminalProbe
+from usecase.transaction.transaction_usecase import TransactionUsecase
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,9 @@ def create_app(data_dir: Path | None = None, probe: TerminalProbe | None = None,
         probe = WindowsTerminalProbe()
     app.config["terminal_usecase"] = usecase
     app.config["terminal_probe"] = probe
-    app.config["transactions_root"] = transactions_root or Path(__file__).parent.parent.parent / "data" / "transactions"
+    tx_root = transactions_root or Path(__file__).parent.parent.parent / "data" / "transactions"
+    tx_repo = LocalTransactionRepository(tx_root)
+    app.config["transaction_usecase"] = TransactionUsecase(tx_repo)
 
     interval = int(os.environ.get("MONITORING_INTERVAL_SEC", "60"))
     worker = MonitoringWorker(repo, interval_sec=interval)
