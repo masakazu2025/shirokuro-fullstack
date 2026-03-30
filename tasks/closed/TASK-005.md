@@ -1,7 +1,7 @@
 ---
 id: TASK-005
 title: Transaction usecase スケルトン実装
-status: partial
+status: closed
 ---
 
 ## 概要
@@ -16,8 +16,8 @@ blueprintのスタブをusecaseに差し替えるところまでを行う。
 - [x] `usecase/transaction/transaction_usecase.py` — TransactionUsecase
 - [x] `tests/unit/` — usecaseのユニットテスト（Fake使用）
 - [x] `infra/repository/local_transaction_repository.py` — LocalTransactionRepository スケルトン
-- [ ] `api/app.py` — TransactionUsecase を注入
-- [ ] `api/terminal/blueprint.py` — スタブをusecaseに差し替え
+- [x] `api/app.py` — TransactionUsecase を注入
+- [x] `api/terminal/blueprint.py` — スタブをusecaseに差し替え
 
 ## 備考
 
